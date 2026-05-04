@@ -14,8 +14,8 @@ The goal is to support reproducible and scalable computational chemistry workflo
 
 ## Available functions
 
-* `extract_nmr()` – Extract NMR shielding data
-* `IRC_energy()` – Retrieve calculated energies from cml files
+- [extract_nmr()](./extract_nmr.R) – Extract NMR shielding data  
+- [IRC_energy()](./IRC_energy.R) – Retrieve calculated energies  
 * *(ongoing)*
 
 ---
