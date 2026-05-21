@@ -80,19 +80,27 @@ $has_imaginary
 ```
 In this example, the large translation/rotation value (93 cm⁻¹) indicates a poorly converged geometry or problematic Hessian.
 
+Set `drop_imaginary = TRUE` to return only real vibrational modes:
+
+```r
+extract_ir_spectrum("file.log", drop_imaginary = TRUE)
+```
+
 ---
 
 ## Structure
 
+```
 gamess_functions/
 ├── R/
-│   ├── extract_nmr.R
-│   ├── IRC_energy.R
-│   ├── extract_basis.R
-│   ├── extract_ir_diagnostics.R
-│   └── ...
+│ ├── extract_nmr.R
+│ ├── IRC_energy.R
+│ ├── extract_basis.R
+│ ├── extract_ir_diagnostics.R
+│ └── ...
 ├── examples/
 └── README.md
+```
 
 Each function is stored as a separate `.R` file for clarity and reuse.
 
