@@ -72,10 +72,13 @@ res <- extract_geometry_trajectory("input_files.log")
 res$n_geometries
 res$energies
 res$min_energy
+```
 
 Access the final optimised structure:
 
+```r
 res$geometries[[res$min_step]]
+```
 
 NMR example
 
@@ -186,4 +189,3 @@ Each function is stored as a separate `.R` file for clarity and reuse.
 ## License
 
 This project is licensed under the MIT License – see the [LICENSE](./LICENSE.txt) file for details.
-S
