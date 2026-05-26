@@ -20,7 +20,7 @@ These tools are designed not just for extraction, but for diagnosing the quality
 - [extract_nmr()](./R/extract_nmr.R) – Extract NMR shielding data
 - [IRC_energy()](./R/IRC_energy.R) – Retrieve calculated energies
 - [extract_ir_diagnostics()](./R/extract_ir_diagnostics.R) – Extract vibrational frequencies and assess geometry quality via translation/rotation modes
-- **extract_geometry_trajectory()** - Extract optimisation trajectory (geometries + energies) from GAMESS output
+- **[extract_geometry_trajectory()](./R/extract_geometry_trajectory.R)** - Extract optimisation trajectory (geometries + energies) from GAMESS output
 
 
 ### Input parsing
