@@ -17,9 +17,11 @@ These tools are designed not just for extraction, but for diagnosing the quality
 ## Available functions
 
 ### Output parsing
-- [extract_nmr()](./R/extract_nmr.R) – Extract NMR shielding data  
-- [IRC_energy()](./R/IRC_energy.R) – Retrieve calculated energies  
+- [extract_nmr()](./R/extract_nmr.R) – Extract NMR shielding data
+- [IRC_energy()](./R/IRC_energy.R) – Retrieve calculated energies
 - [extract_ir_diagnostics()](./R/extract_ir_diagnostics.R) – Extract vibrational frequencies and assess geometry quality via translation/rotation modes
+- **extract_geometry_trajectory()** - Extract optimisation trajectory (geometries + energies) from GAMESS output
+
 
 ### Input parsing
 - [extract_basis_name()](./R/extract_basis.R) – Extract and interpret basis sets (e.g. `6-31+G*`, `6-311++G**`, `aug-cc-pVXZ`)
@@ -28,7 +30,54 @@ These tools are designed not just for extraction, but for diagnosing the quality
 
 ---
 
+## Geometry trajectory extraction
+
+The function `extract_geometry_trajectory()` parses geometry optimisation output and returns:
+
+- All Cartesian geometries
+- Corresponding energies (from `NSERCH:` lines)
+- Step indices
+- Minimum-energy structure
+
+### Key features
+
+- Uses `COORDINATES OF ALL ATOMS` blocks for geometry extraction
+- Extracts energies directly from:
+
+NSERCH: n E= -XXX.XXXXXXXX
+
+- Handles mismatches between number of geometries and energies
+- Identifies the **final converged structure**, not just the first minimum
+
+### Important notes
+
+- GAMESS may print:
+- more geometries than energies
+- repeated geometries at convergence
+- Therefore:
+- `NA` values may appear if no matching energy exists
+- multiple identical minimum energies may occur
+
+The function resolves this by selecting the **last occurrence of the minimum energy**, which corresponds to the converged structure (as used by visualisation tools such as Avogadro).
+
+---
+
 ## Example usage
+
+```r
+source("R/extract_geometry_trajectory.R")
+
+res <- extract_geometry_trajectory("input_files.log")
+
+res$n_geometries
+res$energies
+res$min_energy
+
+Access the final optimised structure:
+
+res$geometries[[res$min_step]]
+
+NMR example
 
 ```r
 source("extract_nmr.R")
@@ -37,6 +86,8 @@ data <- extract_nmr("sample.out")
 head(data)
 ```
 An example of a GAMESS (US) log file is [Methanol NMR](http://figshare.com/articles/Methanol_NMR/1262213)
+
+Basis extraction
 
 ```r
 source("R/extract_basis.R")
@@ -51,6 +102,8 @@ file         basis
 job1.inp     6-31+G*
 job2.inp     6-311++G**
 job3.inp     aug-cc-pVXZ
+
+IR diagnostics
 
 ```r
 source("./R/extract_ir_diagnostics.R")
@@ -97,6 +150,7 @@ gamess_functions/
 │ ├── IRC_energy.R
 │ ├── extract_basis.R
 │ ├── extract_ir_diagnostics.R
+│ ├── extract_geometry_trajectory.R
 │ └── ...
 ├── examples/
 └── README.md
@@ -112,7 +166,8 @@ Each function is stored as a separate `.R` file for clarity and reuse.
 * Comparing computed and experimental results
 * Feeding data into downstream models (e.g. DP4)
 * Automating extraction from multiple GAMESS jobs
-* Auditing computational setups (e.g. basis sets across many calculations)
+* Tracking optimisation convergence
+* Extracting full reaction or optimisation trajectories
 
 ---
 
@@ -121,4 +176,14 @@ Each function is stored as a separate `.R` file for clarity and reuse.
 * Expand input parsing (e.g. functional, solvent, job type)
 * Improve support for Dunning and ECP basis sets
 * Add validation and error handling
+* Export trajectories to .xyz for visualisation
 * Develop into a lightweight R package
+
+## Author
+
+[Darren Rhodes]
+
+## License
+
+This project is licensed under the MIT License – see the [LICENSE](./LICENSE.txt) file for details.
+S
