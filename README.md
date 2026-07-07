@@ -101,10 +101,12 @@ head(res)
 
 example of what the function returns
 
+```text
 file         basis
 job1.inp     6-31+G*
 job2.inp     6-311++G**
 job3.inp     aug-cc-pVXZ
+```
 
 IR diagnostics
 
@@ -141,6 +143,51 @@ Set `drop_imaginary = TRUE` to return only real vibrational modes:
 ```r
 extract_ir_spectrum("file.log", drop_imaginary = TRUE)
 ```
+
+---
+
+
+## SPARQL / ontology integration
+
+sparql_to_file.R is the entry point for pipelines driven by an ontology
+(e.g. ont_mm) rather than by a
+folder of files: query the graph for which files are involved, resolve
+those results to real paths, then hand them straight to any extractor
+above.
+
+It shells out to robot query, so robot
+must be on your PATH (or pass robot_cmd = "java -jar /path/to/robot.jar").
+
+```r
+rsource("R/sparql_to_file.R")
+
+# Which files came out of a given experiment?
+res <- sparql_query(
+  graph_file = "path/to/gc_core_full.ttl",
+  query = "SELECT ?output WHERE {
+             ?exp ex:hasInputFile ex:file_rem01_inp .
+             ?output prov:wasGeneratedBy ?exp .
+           }"
+)
+
+# Get every fileURL in the graph and check what's actually on disk
+urls <- sparql_query(
+  graph_file = "path/to/gc_core_full.ttl",
+  query = "SELECT ?url WHERE { ?f ex:fileURL ?url . }"
+)
+br <- batch_resolve(urls$url)
+
+# Feed a resolved path straight into an existing extractor
+source("R/extract_geometry_trajectory.R")
+traj <- extract_geometry_trajectory(br$path[br$exists][1])
+```
+
+Common PREFIX declarations (ex:, gc:, prov:, rdf:, rdfs:, owl:,
+dcterms:) are added automatically unless your query already declares
+them.
+
+See tests/test_sparql_to_file.R for a
+runnable end-to-end check against a real ont_mm graph.
 
 ---
 
