@@ -1,18 +1,31 @@
 # Test script for sparql_to_file.R
 #
-# Run from the root of your gamess_functions checkout, with ont_mm cloned
-# alongside it (adjust ont_mm_path below if your layout differs).
+# Lives in gamess_functions/tests/. Uses absolute paths throughout so it
+# can be run from any working directory - adjust the two paths below to
+# match your checkout locations.
 #
 # Prerequisites:
 #   - `robot` on PATH (test with: system2("robot", "--version"))
 #     If it's not on PATH, set robot_cmd below, e.g.
 #     robot_cmd <- "java -jar /path/to/robot.jar"
 
-source("~/Projects/active/gamess_functions/R/sparql_to_file.R")
+gamess_functions_path <- "~/Projects/active/gamess_functions"
+ont_mm_path           <- "~/Projects/active/ont_mm"
 
-ont_mm_path <- "~/Projects/active/ont_mm/"          # adjust to your actual path
-graph       <- file.path(ont_mm_path, "/examples/ont/gc_core_full_2026-05-08.ttl")
-robot_cmd   <- "robot"              # adjust if not on PATH
+source(file.path(gamess_functions_path, "R/sparql_to_file.R"))
+
+# Note: builds/gc_core.ttl is schema-only (no instance data) as currently
+# built - see the open question about whether it should ever carry
+# individuals. Use the populated example graph until that's settled.
+#
+# gc_core_full_*.ttl is dated per release - always pick the most recent
+# one rather than hardcoding a date that will go stale at the next rebuild.
+graph_candidates <- list.files(file.path(ont_mm_path, "examples/ont"),
+                                pattern = "^gc_core_full_.*\\.ttl$",
+                                full.names = TRUE)
+graph <- graph_candidates[order(graph_candidates, decreasing = TRUE)][1]
+cat("Using graph:", graph, "\n")
+robot_cmd <- "robot"              # adjust if not on PATH
 
 stopifnot(file.exists(graph))
 
@@ -66,7 +79,7 @@ cat(sum(br$exists, na.rm = TRUE), "of", nrow(br), "resolved on this machine\n\n"
 cat("=== Test 4: full chain into an existing extractor ===\n")
 ok <- br[which(br$exists), ]
 if (nrow(ok) > 0) {
-  source("~/Projects/active/gamess_functions/R/extract_geometry_trajectory.R")
+  source(file.path(gamess_functions_path, "R/extract_geometry_trajectory.R"))
   target <- ok$path[grepl("\\.log$", ok$path)][1]
   if (!is.na(target)) {
     traj <- extract_geometry_trajectory(target)
@@ -96,4 +109,3 @@ empty <- sparql_query(
   robot_cmd = robot_cmd
 )
 cat("OK - empty result handled, nrow =", nrow(empty), "\n")
-

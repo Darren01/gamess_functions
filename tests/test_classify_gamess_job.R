@@ -6,7 +6,7 @@
 gamess_functions_path <- "~/Projects/active/gamess_functions"
 ont_mm_path           <- "~/Projects/active/ont_mm"
 
-source(file.path(gamess_functions_path, "R/classify_gamess_job.R"))
+source(file.path(gamess_functions_path, "R/classify_gamess_jobs.R"))
 
 inputs_dir <- file.path(ont_mm_path, "examples/inputs")
 stopifnot(dir.exists(inputs_dir))
