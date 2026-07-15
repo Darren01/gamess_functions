@@ -7,20 +7,22 @@
 #   - STO-nG
 #   - Dunning (cc-pVXZ, aug-cc-pVXZ)
 #   - Custom basis detection ($DATA)
+#
+# Depends on gamess_input_utils.R (strip_input_card_prefix, get_gamess_block)
+# - source that first.
 # ============================================================
 
 
 # ---- Extract $BASIS block ----
+# Uses the shared block matcher (gamess_input_utils.R) so this works on
+# both raw .inp files and .log files' echoed "INPUT CARD>" text. The
+# previous version anchored to start-of-line only, which meant it silently
+# returned NA when given a .log file - a mirror-image of the opposite bug
+# in extract_input_parameters(), which only worked on .log. Both are now
+# fixed to use the same matcher, so they agree on either file type.
 extract_basis_block <- function(lines) {
-  start <- grep("^\\s*\\$BASIS", lines, ignore.case = TRUE)
-  end   <- grep("^\\s*\\$END",   lines, ignore.case = TRUE)
-  
-  if (length(start) == 0) return(NULL)
-  
-  end <- end[end > start[1]]
-  if (length(end) == 0) return(NULL)
-  
-  lines[start[1]:end[1]]
+  lines <- strip_input_card_prefix(lines)
+  get_gamess_block(lines, "BASIS")
 }
 
 

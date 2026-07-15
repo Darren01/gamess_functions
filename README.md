@@ -24,7 +24,15 @@ These tools are designed not just for extraction, but for diagnosing the quality
 
 
 ### Input parsing
-- [extract_basis_name()](./R/extract_basis.R) – Extract and interpret basis sets (e.g. `6-31+G*`, `6-311++G**`, `aug-cc-pVXZ`)
+- [strip_input_card_prefix()](./R/gamess_input_utils.R), [get_gamess_block()](./R/gamess_input_utils.R), [parse_gamess_block()](./R/gamess_input_utils.R) – Shared block-matching helpers: find and parse a `$GROUP ... $END` block from either a raw `.inp` file or a `.log` file's echoed `INPUT CARD>` text. Every other input-parsing function below is built on these - source this file first.
+- [extract_basis_name()](./R/extract_basis.R) – Extract and interpret basis sets (e.g. `6-31+G*`, `6-311++G**`, `aug-cc-pVXZ`). Works on `.inp` or `.log`.
+- [classify_gamess_job()](./R/classify_gamess_jobs.R), [classify_gamess_jobs()](./R/classify_gamess_jobs.R) – Classify a job by RUNTYP/HSSEND (GeometryOptimization, SinglePoint, VibrationalAnalysis), single file or batch over a directory. Works on `.inp` or `.log`.
+- [extract_input_parameters()](./R/extract_input_parameters.R) – Full `$CONTRL`/`$STATPT`/`$SCF` run parameters plus basis set in one call (RUNTYP, SCFTYP, DFTTYP, charge, multiplicity, convergence criteria). The calculation-metadata companion to `classify_gamess_job()`. Works on `.inp` or `.log`.
+
+### Ontology integration
+- [sparql_query()](./R/sparql_to_file.R) – Run a SPARQL SELECT against a local ontology/graph file via `robot query`
+- [resolve_file_url()](./R/sparql_to_file.R) – Resolve an `ex:fileURL` (`file://...`) to a local filesystem path
+- [batch_resolve()](./R/sparql_to_file.R) – Resolve and check a whole vector of `ex:fileURL` values at once, flagging anything missing
 
 * *(ongoing)*
 
@@ -101,12 +109,10 @@ head(res)
 
 example of what the function returns
 
-```text
 file         basis
 job1.inp     6-31+G*
 job2.inp     6-311++G**
 job3.inp     aug-cc-pVXZ
-```
 
 IR diagnostics
 
@@ -146,20 +152,19 @@ extract_ir_spectrum("file.log", drop_imaginary = TRUE)
 
 ---
 
-
 ## SPARQL / ontology integration
 
-sparql_to_file.R is the entry point for pipelines driven by an ontology
-(e.g. ont_mm) rather than by a
+`sparql_to_file.R` is the entry point for pipelines driven by an ontology
+(e.g. [ont_mm](https://github.com/Darren01/ont_mm)) rather than by a
 folder of files: query the graph for which files are involved, resolve
 those results to real paths, then hand them straight to any extractor
 above.
 
-It shells out to robot query, so robot
-must be on your PATH (or pass robot_cmd = "java -jar /path/to/robot.jar").
+It shells out to [`robot query`](http://robot.obolibrary.org/), so `robot`
+must be on your `PATH` (or pass `robot_cmd = "java -jar /path/to/robot.jar"`).
 
 ```r
-rsource("R/sparql_to_file.R")
+source("R/sparql_to_file.R")
 
 # Which files came out of a given experiment?
 res <- sparql_query(
@@ -182,12 +187,38 @@ source("R/extract_geometry_trajectory.R")
 traj <- extract_geometry_trajectory(br$path[br$exists][1])
 ```
 
-Common PREFIX declarations (ex:, gc:, prov:, rdf:, rdfs:, owl:,
-dcterms:) are added automatically unless your query already declares
+Common PREFIX declarations (`ex:`, `gc:`, `prov:`, `rdf:`, `rdfs:`, `owl:`,
+`dcterms:`) are added automatically unless your query already declares
 them.
 
-See tests/test_sparql_to_file.R for a
+See [`tests/test_sparql_to_file.R`](./tests/test_sparql_to_file.R) for a
 runnable end-to-end check against a real ont_mm graph.
+
+---
+
+## Input parsing internals
+
+`.inp` files and `.log` files represent the same GAMESS input differently:
+a raw `.inp` has `$CONTRL RUNTYP=OPTIMIZE $END` starting the line, while a
+`.log` echoes the same line prefixed with `INPUT CARD>`. Several functions
+here need to read `$CONTRL`/`$STATPT`/`$SCF`/`$BASIS` blocks, and used to
+each have their own regex for this - which meant they silently disagreed
+about which file type they supported. `extract_basis_name()` only worked
+on `.inp`; `extract_input_parameters()` only worked on `.log`; combining
+them (as `extract_input_parameters()` does internally, for basis) meant
+one half of the result was always `NA` with no warning.
+
+`gamess_input_utils.R` is the fix: one matcher
+(`strip_input_card_prefix()` + `get_gamess_block()` + `parse_gamess_block()`)
+that works identically on either file type, used by every other
+input-parsing function. Source it first.
+
+A related fix in `extract_input_parameters()`: `charge`/`multiplicity`
+fall back to GAMESS's real defaults (`ICHARG=0`, `MULT=1`) only when the
+`$CONTRL` block was found but that specific keyword was absent - a
+legitimate case. If the block wasn't found at all, they come back `NA`
+rather than a default that looks like a real value. Check
+`contrl_found` in the result if you need to tell the two apart.
 
 ---
 
@@ -198,11 +229,18 @@ gamess_functions/
 ├── R/
 │ ├── extract_nmr.R
 │ ├── IRC_energy.R
+│ ├── gamess_input_utils.R
 │ ├── extract_basis.R
+│ ├── classify_gamess_jobs.R
+│ ├── extract_input_parameters.R
 │ ├── extract_ir_diagnostics.R
 │ ├── extract_geometry_trajectory.R
+│ ├── sparql_to_file.R
 │ └── ...
 ├── examples/
+├── tests/
+│ ├── test_sparql_to_file.R
+│ └── test_classify_gamess_job.R
 └── README.md
 ```
 
@@ -223,9 +261,13 @@ Each function is stored as a separate `.R` file for clarity and reuse.
 
 ## Future work
 
-* Expand input parsing (e.g. functional, solvent, job type)
+* Feed extract_input_parameters() calculation metadata (basis, charge,
+  multiplicity, functional) into ont_mm results-template writers, once
+  the results schema is aligned to gc:CalculationResult/FloatValue
+  (in progress)
 * Improve support for Dunning and ECP basis sets
-* Add validation and error handling
+* Add validation and error handling to the older functions (extract_nmr,
+  IRC_energy)
 * Export trajectories to .xyz for visualisation
 * Develop into a lightweight R package
 
