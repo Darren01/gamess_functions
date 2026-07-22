@@ -22,6 +22,11 @@ strip_input_card_prefix <- function(lines) {
 #' regex, so it's robust to a block being split across multiple physical
 #' lines - which GAMESS allows and which occurs in real input decks.
 #'
+#' Returns only the FIRST occurrence - correct for blocks that appear at
+#' most once per file ($CONTRL, $STATPT, $SCF, $BASIS). For blocks that
+#' can legitimately appear more than once (e.g. $ZMAT), use
+#' get_gamess_blocks() (plural) instead.
+#'
 #' @param lines character vector of file lines (already prefix-stripped)
 #' @param block_name e.g. "CONTRL", "BASIS", "STATPT", "SCF" (no $ needed)
 #' @return character vector of the matched lines (inclusive of the
@@ -37,6 +42,34 @@ get_gamess_block <- function(lines, block_name) {
   if (length(end) == 0) return(NULL)
 
   lines[start[1]:end[1]]
+}
+
+
+#' Extract every $BLOCKNAME ... $END span from GAMESS input lines
+#'
+#' Same matching logic as get_gamess_block(), but returns ALL
+#' non-overlapping occurrences rather than just the first - for blocks
+#' that can legitimately appear more than once in the same file (e.g.
+#' $ZMAT, which real input decks have been observed to repeat).
+#'
+#' @param lines character vector of file lines (already prefix-stripped)
+#' @param block_name e.g. "ZMAT" (no $ needed)
+#' @return a list of character vectors, one per occurrence (each
+#'   inclusive of its $BLOCKNAME and $END lines), or an empty list if
+#'   none found
+#' @export
+get_gamess_blocks <- function(lines, block_name) {
+  start <- grep(paste0("^\\s*\\$", block_name, "\\b"), lines, ignore.case = TRUE)
+  end   <- grep("\\$END\\b", lines, ignore.case = TRUE)
+
+  blocks <- list()
+  for (s in start) {
+    e <- end[end >= s][1]
+    if (!is.na(e)) {
+      blocks[[length(blocks) + 1]] <- lines[s:e]
+    }
+  }
+  blocks
 }
 
 
