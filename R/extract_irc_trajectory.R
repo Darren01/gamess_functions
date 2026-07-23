@@ -26,7 +26,11 @@
 #' @export
 extract_irc_trajectory <- function(file) {
 
-  lines <- readLines(file, warn = FALSE)
+  if (!file.exists(file)) {
+    stop("File not found: ", file)
+  }
+
+  lines <- readLines(path.expand(file), warn = FALSE)
 
   point_idx <- grep("POINT\\s+\\d+\\s+ON THE REACTION PATH", lines)
 

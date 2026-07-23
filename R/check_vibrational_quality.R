@@ -7,7 +7,8 @@
 #' next step's input. max_trans_rot_error - how far GAMESS's own
 #' identified translation/rotation modes are from the ideal 0 cm-1 -
 #' is the signal for whether a given run's geometry is "good enough"
-#' (below ~20 cm-1, usually well below) or needs another iteration.
+#' (below the working threshold, default 10 cm-1) or needs another
+#' iteration.
 #'
 #' This function REPORTS that status - it does not decide whether to
 #' write results. A "needs_refinement" result is not invalid data; it's
@@ -21,13 +22,14 @@
 #'
 #' @param file Path to a GAMESS .log file with vibrational analysis output.
 #' @param trans_rot_threshold Maximum acceptable translation/rotation
-#'   mode error, in cm-1. Default 20 (per typical practice - well-
-#'   converged geometries are usually well below this, but this is the
-#'   working cutoff for flagging "needs another iteration").
+#'   mode error, in cm-1. Optional, default 10 - matches
+#'   check_geometry_quality()'s own default, so both quality checks in
+#'   this package agree by default rather than silently using different
+#'   thresholds for the same underlying quantity.
 #' @return A list: status ("converged" or "needs_refinement"),
 #'   max_trans_rot_error, has_imaginary, message (human-readable).
 #' @export
-check_vibrational_quality <- function(file, trans_rot_threshold = 20) {
+check_vibrational_quality <- function(file, trans_rot_threshold = 10) {
 
   diag <- tryCatch(
     extract_ir_diagnostics(file),

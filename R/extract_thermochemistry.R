@@ -24,7 +24,11 @@
 #' @export
 extract_thermochemistry <- function(file) {
   
-  lines <- readLines(file, warn = FALSE)
+  if (!file.exists(file)) {
+    stop("File not found: ", file)
+  }
+
+  lines <- readLines(path.expand(file), warn = FALSE)
   
   # =========================================================
   # 1. ZPE (HARTREE)

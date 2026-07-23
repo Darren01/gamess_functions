@@ -94,9 +94,23 @@ interpret_basis <- function(b) {
 }
 
 
-# ---- Extract basis name from a single file ----
+#' Extract and interpret the basis set from a GAMESS input or output file
+#'
+#' Supports Pople basis sets (e.g. 6-31+G*, 6-311++G**), STO-nG, Dunning
+#' (cc-pVXZ, aug-cc-pVXZ), and falls back to reporting a custom basis
+#' where a $DATA-defined one is used instead of a named $BASIS keyword set.
+#'
+#' @param file Path to a GAMESS .inp or .log file.
+#' @return The interpreted basis set name (character), "Custom ($DATA)"
+#'   if no $BASIS keyword set was found but $DATA was, or NA if neither.
+#' @export
 extract_basis_name <- function(file) {
-  lines <- readLines(file, warn = FALSE)
+
+  if (!file.exists(file)) {
+    stop("File not found: ", file)
+  }
+
+  lines <- readLines(path.expand(file), warn = FALSE)
   
   block <- extract_basis_block(lines)
   parsed <- parse_basis_keywords(block)
@@ -113,7 +127,12 @@ extract_basis_name <- function(file) {
 }
 
 
-# ---- Apply to folder ----
+#' Extract basis sets for every GAMESS input file in a folder
+#'
+#' @param folder_path Directory containing .inp files.
+#' @param pattern Filename pattern to match (default: .inp or .in).
+#' @return A data.frame: file, basis.
+#' @export
 extract_basis_folder <- function(folder_path, pattern = "\\.(inp|in)$") {
   files <- list.files(folder_path, pattern = pattern, full.names = TRUE)
   

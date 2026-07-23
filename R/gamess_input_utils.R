@@ -45,7 +45,32 @@ get_gamess_block <- function(lines, block_name) {
 }
 
 
-#' Extract every $BLOCKNAME ... $END span from GAMESS input lines
+#' Parse GAMESS frequency values from FREQUENCY: lines
+#'
+#' GAMESS marks imaginary frequencies with a trailing "I" rather than a
+#' negative sign (e.g. "139.50" vs "45.20I"). This returns imaginary
+#' modes as negative numbers, a convention used throughout this package
+#' (has_imaginary checks, imaginary flags, etc.).
+#'
+#' Was previously duplicated near-identically in extract_ir_spectrum.R
+#' and extract_ir_diagnostics.R - consolidated here so the two can't
+#' silently drift apart, same reasoning as get_gamess_block()/
+#' get_gamess_blocks().
+#'
+#' @param freq_lines character vector of raw "FREQUENCY: ..." lines
+#' @return numeric vector of frequencies (cm-1), imaginary modes negative
+#' @export
+parse_gamess_frequencies <- function(freq_lines) {
+  parse_one_line <- function(line) {
+    m <- gregexpr("-?\\d+\\.\\d+\\s*I?", line, perl = TRUE)
+    tokens <- regmatches(line, m)[[1]]
+    vapply(tokens, function(t) {
+      val <- as.numeric(gsub("I", "", t))
+      if (grepl("I", t)) -abs(val) else val
+    }, numeric(1))
+  }
+  unlist(lapply(freq_lines, parse_one_line), use.names = FALSE)
+}
 #'
 #' Same matching logic as get_gamess_block(), but returns ALL
 #' non-overlapping occurrences rather than just the first - for blocks
@@ -96,4 +121,37 @@ parse_gamess_block <- function(block_lines) {
     }
   }
   res
+}
+
+
+#' Parse GAMESS frequency values from "FREQUENCY:" lines
+#'
+#' GAMESS marks imaginary modes with a trailing "I" (e.g. "139.50 I"),
+#' printed as a positive magnitude with the I suffix rather than a
+#' negative number. This converts imaginary modes to negative numbers
+#' (the convention used throughout this package - see has_imaginary /
+#' imaginary columns elsewhere), so downstream code just checks sign.
+#'
+#' Previously duplicated identically in extract_ir_diagnostics.R and
+#' extract_ir_spectrum.R - moved here as the one shared implementation,
+#' same reasoning as get_gamess_block()/parse_gamess_block().
+#'
+#' @param freq_lines Character vector of raw "FREQUENCY: ..." lines
+#'   (e.g. from grep("FREQUENCY:", lines, value = TRUE)).
+#' @return A numeric vector of frequencies, imaginary modes negative.
+#' @export
+parse_gamess_frequencies <- function(freq_lines) {
+  if (length(freq_lines) == 0) return(numeric(0))
+
+  parse_one <- function(line) {
+    m <- gregexpr("-?\\d+\\.\\d+\\s*I?", line, perl = TRUE)
+    tokens <- regmatches(line, m)[[1]]
+
+    vapply(tokens, function(t) {
+      val <- as.numeric(gsub("I", "", t))
+      if (grepl("I", t)) -abs(val) else val
+    }, numeric(1))
+  }
+
+  unlist(lapply(freq_lines, parse_one), use.names = FALSE)
 }
