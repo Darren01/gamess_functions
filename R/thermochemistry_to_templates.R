@@ -90,6 +90,7 @@ thermochemistry_to_templates <- function(thermo_df, experiment_id, label_suffix 
     hasEnthalpy = enthalpy_id,
     hasEntropy = entropy_id,
     hasGibbsFreeEnergy = gibbs_id,
+    hasElectronicEnergy = "",
     stringsAsFactors = FALSE
   )
 
