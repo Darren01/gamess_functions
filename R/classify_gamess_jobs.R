@@ -39,6 +39,12 @@
 #' @export
 classify_gamess_job <- function(file) {
 
+  if (dir.exists(file)) {
+    stop("'", file, "' is a directory, not a file. ",
+         "classify_gamess_job() takes a single file - use ",
+         "classify_gamess_jobs() (plural) to classify every file in a folder at once.")
+  }
+
   if (!file.exists(file)) {
     stop("File not found: ", file)
   }
@@ -120,8 +126,37 @@ classify_gamess_job <- function(file) {
 #' @return A data.frame with columns: file, job_type, runtyp, hssend,
 #'   irc_direction.
 #' @export
-classify_gamess_jobs <- function(dir) {
-  files <- list.files(dir, pattern = "\\.inp$", full.names = TRUE)
+#' Classify every GAMESS file in a directory
+#'
+#' Batch wrapper around classify_gamess_job(), for the common case of
+#' dispatching a whole folder of experiments at once (e.g. inside
+#' process_experiments.R, or for a first look at a real, unfamiliar
+#' dataset).
+#'
+#' Scans both .inp and .log by default - classify_gamess_job() itself
+#' works equally well on either, so restricting the batch version to
+#' .inp only (the previous behaviour) was an unnecessary inconsistency.
+#' If a folder has both an .inp and its corresponding .log for the same
+#' experiment, both are classified separately (two rows) rather than
+#' silently deduplicated - real folder layouts vary too much to safely
+#' assume which one should "win", so that decision is left to the
+#' caller.
+#'
+#' @param dir Directory containing GAMESS files.
+#' @param pattern Filename pattern to match (default: .inp or .log).
+#'   Pass a narrower pattern (e.g. "\\\\.inp$") to restrict to one type.
+#' @return A data.frame with columns: file, job_type, runtyp, hssend,
+#'   irc_direction.
+#' @export
+classify_gamess_jobs <- function(dir, pattern = "\\.(inp|log)$") {
+  files <- list.files(dir, pattern = pattern, full.names = TRUE)
+
+  if (length(files) == 0) {
+    warning("No files matching '", pattern, "' found in ", dir)
+    return(data.frame(file = character(0), job_type = character(0),
+                       runtyp = character(0), hssend = logical(0),
+                       irc_direction = character(0), stringsAsFactors = FALSE))
+  }
 
   rows <- lapply(files, function(f) {
     res <- classify_gamess_job(f)
