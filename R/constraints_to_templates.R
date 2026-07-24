@@ -36,13 +36,19 @@ constraints_to_templates <- function(constraints_df, experiment_id) {
     data.frame(
       ID = experiment_id,
       Label = paste("Experiment", sub("^ex:exp_", "", experiment_id)),
-      # Type intentionally blank - the experiment's type is already
-      # asserted once, correctly, in experiment_template_instances.tsv
-      # (via classify_gamess_job()). Redeclaring it here previously
-      # caused a real bug: this row hardcoded ex:GeometryOptimization,
-      # silently contradicting the correct type for anything that
-      # wasn't one (e.g. rem01b, a VibrationalAnalysis).
-      Type = "",
+      # Type = gc:MolecularComputation - a true ancestor type, correct
+      # regardless of the experiment's specific subtype, same pattern
+      # as every other writer's spectra_result row. NOT blank: a blank
+      # Type was tried here originally (to avoid an earlier bug where a
+      # SPECIFIC wrong type - ex:GeometryOptimization - was hardcoded
+      # and silently contradicted experiments that weren't that type),
+      # but a blank Type has its own, worse failure mode - ROBOT
+      # defaults an untyped-in-this-file ID to a bare owl:Class,
+      # corrupting the experiment individual's type entirely rather
+      # than just adding a redundant-but-correct assertion. Confirmed
+      # via SPARQL: ex:exp_rem01b was showing up as rdf:type owl:Class
+      # in the merged graph before this fix.
+      Type = "gc:MolecularComputation",
       hasConstraint = cid,
       involvesAtom1 = "", involvesAtom2 = "", involvesAtom3 = "", involvesAtom4 = "",
       targetValue = 0, hasUnit = "", constraintMode = "", forceConstant = "",
