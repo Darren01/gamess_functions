@@ -18,6 +18,12 @@ extract_data_block_geometry <- function(file) {
 
   lines <- readLines(path.expand(file), warn = FALSE)
 
+  # GAMESS echoes input lines in .log files prefixed with "INPUT CARD>"
+  # (a raw .inp file has no such prefix) - strip it if present, so this
+  # function works on either a raw .inp or a .log's own input echo,
+  # without needing two separate parsers for the same underlying format.
+  lines <- sub("^\\s*INPUT CARD>", "", lines)
+
   start <- grep("^\\s*\\$DATA\\s*$", lines, ignore.case = TRUE)
   if (length(start) == 0) {
     stop("No $DATA block found in ", file)
