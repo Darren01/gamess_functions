@@ -61,22 +61,30 @@ notes_to_annotations <- function(notes_file) {
 
 #' Write annotation rows to an instances file
 #'
+#' Always regenerates the file fresh, rather than appending - this is
+#' the correct behaviour specifically for annotations, unlike the
+#' shared float_value/spectra_result templates elsewhere in this
+#' project (which genuinely need append-across-calls, since different
+#' writers each contribute rows nobody else has visibility into).
+#' notes_to_annotations() always reads run_notes.tsv in full and
+#' returns every note, so appending here would duplicate every
+#' already-processed experiment's annotation each time run_notes.tsv
+#' is edited and this is re-run - found before it caused a real
+#' problem, not after.
+#'
 #' @param rows Output of notes_to_annotations().
-#' @param output_file Path to write (or append to) the instances TSV.
+#' @param output_file Path to write the instances TSV (overwritten
+#'   completely each time).
 #' @export
 write_annotations <- function(rows, output_file) {
   header <- c("ID", "Type", "Comment")
   type_row <- c("ID", "TYPE", "A rdfs:comment")
 
-  if (file.exists(output_file)) {
-    write.table(rows, output_file, sep = "\t", row.names = FALSE,
-                col.names = FALSE, quote = FALSE, append = TRUE)
-  } else {
-    writeLines(paste(header, collapse = "\t"), output_file)
-    write(paste(type_row, collapse = "\t"), output_file, append = TRUE)
-    write.table(rows, output_file, sep = "\t", row.names = FALSE,
-                col.names = FALSE, quote = FALSE, append = TRUE)
-  }
+  writeLines(paste(header, collapse = "\t"), output_file)
+  write(paste(type_row, collapse = "\t"), output_file, append = TRUE)
+  write.table(rows, output_file, sep = "\t", row.names = FALSE,
+              col.names = FALSE, quote = FALSE, append = TRUE)
 
-  cat("Wrote", nrow(rows), "annotation(s) to", output_file, "\n")
+  cat("Wrote", nrow(rows), "annotation(s) to", output_file,
+      "(file regenerated fresh, not appended)\n")
 }
