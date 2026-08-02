@@ -1,9 +1,14 @@
 # Query your own ont_mm ontology
 #
-# A starting point for querying ANY graph built with this pipeline -
-# not tied to Darren01/ont_mm's own rem01/rem01a/rem01b example data.
-# The one thing you need to change is GRAPH_FILE below; everything else
-# runs against whatever's actually in your own graph.
+# Three tiers, roughly in order of how much SPARQL you need to know:
+#
+#   Tier 1 - summarize_graph(graph_file) - zero SPARQL, one function
+#            call, a real overview of what's in your data. Start here.
+#   Tier 2 - the templates below - you know roughly what you want to
+#            ask, copy the closest template and change the ID/filter.
+#   Tier 3 - write your own - a short primer, enough to read and adapt
+#            what's here, not a substitute for a real SPARQL tutorial
+#            (linked at the bottom for that).
 #
 # Prerequisites: `robot` on your PATH (test with:
 # system2("robot", "--version", stdout = TRUE, stderr = TRUE) - should
@@ -15,45 +20,42 @@
 # ---------------------------------------------------------------------
 GRAPH_FILE <- "path/to/your/built_graph.ttl"
 
-source("gamess_functions/R/sparql_to_file.R")   # adjust path to your gamess_functions checkout
+source("gamess_functions/R/sparql_to_file.R")     # adjust path to your gamess_functions checkout
+source("gamess_functions/R/summarize_graph.R")
 
 stopifnot(file.exists(GRAPH_FILE))
 
-# ---------------------------------------------------------------------
-# 1. What experiments are in this graph, and what type is each one?
-#    A good first query on any unfamiliar graph - answers "what's
-#    actually in here" before asking anything more specific.
-# ---------------------------------------------------------------------
-cat("=== Experiments by type ===\n")
-res <- sparql_query(
-  graph_file = GRAPH_FILE,
-  query = "SELECT ?exp ?type WHERE {
-             ?exp a ?type .
-             FILTER(?type IN (gc:GeometryOptimization, gc:SinglePoint,
-                               gc:VibrationalAnalysis, gc:SaddlePoint, gc:IRC))
-           } ORDER BY ?type ?exp"
-)
-print(res)
+# =======================================================================
+# TIER 1 - zero SPARQL required
+# =======================================================================
+
+summarize_graph(GRAPH_FILE)
+
+# That's genuinely it for Tier 1 - experiments, your own review notes,
+# imaginary-frequency quality flags, and constraints, all in one call.
+# Move to Tier 2 once you have a more specific question in mind.
+
+# =======================================================================
+# TIER 2 - templates: copy the closest one, change the ID/filter
+# =======================================================================
 
 # ---------------------------------------------------------------------
-# 2. Any vibrational analyses with an imaginary frequency?
-#    Useful real question: which experiments' geometries might not be
-#    genuine minima.
+# 2a. All results for ONE specific experiment
+#     CHANGE: "ex:exp_rem01b" to your own experiment's ID
+#     (get real IDs from summarize_graph()'s output above)
 # ---------------------------------------------------------------------
-cat("\n=== Peaks with negative (imaginary) frequency ===\n")
+cat("=== All results for one experiment ===\n")
 res <- sparql_query(
   graph_file = GRAPH_FILE,
-  query = "SELECT ?spectrum ?freq WHERE {
-             ?spectrum gc:hasFrequencyPeak ?peak .
-             ?peak gc:hasFrequency ?fv .
-             ?fv gc:hasFloatValue ?freq .
-             FILTER(?freq < 0)
+  query = "SELECT ?predicate ?object WHERE {
+             ex:exp_rem01b ?predicate ?object .
            }"
 )
 print(res)
 
 # ---------------------------------------------------------------------
-# 3. All thermochemistry/electronic energy results in one table
+# 2b. All thermochemistry/electronic energy results in one table
+#     Nothing to change - works as-is across any graph
 # ---------------------------------------------------------------------
 cat("\n=== System energies ===\n")
 res <- sparql_query(
@@ -69,22 +71,8 @@ res <- sparql_query(
 print(res)
 
 # ---------------------------------------------------------------------
-# 4. Every constraint in the graph, with its target value and unit
-# ---------------------------------------------------------------------
-cat("\n=== Constraints ===\n")
-res <- sparql_query(
-  graph_file = GRAPH_FILE,
-  query = "SELECT ?constraint ?type ?target ?unit WHERE {
-             ?constraint a ?type ; ex:targetValue ?target ; gc:hasUnit ?unit .
-             FILTER(?type IN (ex:DistanceConstraint, ex:AngleConstraint, ex:DihedralConstraint))
-           }"
-)
-print(res)
-
-# ---------------------------------------------------------------------
-# 5. Provenance chain: which experiment's output became which
-#    experiment's input? (the rem01 -> rem01a -> rem01b pattern, or
-#    whatever your own successive-refinement sequence looks like)
+# 2c. Provenance chain: which experiment's output became which
+#     experiment's input? Nothing to change - works as-is.
 # ---------------------------------------------------------------------
 cat("\n=== Provenance: output-to-input chains ===\n")
 res <- sparql_query(
@@ -97,9 +85,52 @@ res <- sparql_query(
 print(res)
 
 # ---------------------------------------------------------------------
-# Your own query - adapt any of the above, or write from scratch.
-# Every property/class name used above (gc:hasFrequencyPeak,
-# gc:SystemEnergies, ex:DistanceConstraint, etc) is real and can be
-# explored further - e.g. SELECT ?p WHERE { ?s ?p ?o } to see every
-# property a specific individual actually has.
+# 2d. Filter constraints to just one target value
+#     CHANGE: 2.0 to whatever value you're actually interested in
 # ---------------------------------------------------------------------
+cat("\n=== Constraints with a specific target value ===\n")
+res <- sparql_query(
+  graph_file = GRAPH_FILE,
+  query = "SELECT ?constraint ?type WHERE {
+             ?constraint a ?type ; ex:targetValue 2.0 ; gc:hasUnit gc:angstrom .
+             FILTER(?type IN (ex:DistanceConstraint, ex:AngleConstraint, ex:DihedralConstraint))
+           }"
+)
+print(res)
+
+# =======================================================================
+# TIER 3 - write your own: a short primer
+# =======================================================================
+#
+# Every SPARQL query in this file has the same shape:
+#
+#   SELECT ?variable1 ?variable2 WHERE {
+#     <subject> <predicate> ?variable1 .
+#     ?variable1 <predicate2> ?variable2 .
+#   }
+#
+# - Anything starting with "?" is a variable - SPARQL fills it in with
+#   whatever matches, and returns one row per match.
+# - Lines separated by " . " are separate facts that must ALL be true
+#   at once (an AND) - each line's ?variable can be reused in the next
+#   line to chain facts together, which is how you "walk" from one
+#   thing to a related thing (e.g. Tier 2b: energies -> its properties
+#   -> their actual values, three chained facts).
+# - FILTER(...) narrows results after matching - IN (...) checks
+#   membership in a list, < / > do numeric comparison (only on
+#   properly-typed numeric literals - see the real bug this project hit
+#   with this exact class of comparison, now fixed).
+# - Every gc:/ex:/prov: name used above is real - to see EVERY property
+#   a specific individual actually has, with no assumptions:
+#
+#     SELECT ?p ?o WHERE { ex:exp_rem01b ?p ?o . }
+#
+#   is always a safe way to explore something you don't yet know the
+#   shape of.
+#
+# This is deliberately not a full SPARQL tutorial - for that, the
+# official W3C SPARQL 1.1 Query Language spec
+# (https://www.w3.org/TR/sparql11-query/) is the authoritative
+# reference, and there are many good general tutorials online. This
+# primer is only meant to get you reading and adapting what's already
+# here.
