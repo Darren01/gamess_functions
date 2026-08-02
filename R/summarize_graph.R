@@ -54,7 +54,7 @@ summarize_graph <- function(graph_file) {
                ?peak gc:hasFrequency ?fv .
                ?fv gc:hasFloatValue ?freq .
                FILTER(?freq < 0)
-             }"
+             } ORDER BY ?spectrum ?freq"
   )
   cat("\nImaginary (negative) frequencies found:", nrow(imaginary), "\n")
   if (nrow(imaginary) > 0) {
