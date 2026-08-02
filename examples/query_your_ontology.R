@@ -49,24 +49,26 @@ res <- sparql_query(
   graph_file = GRAPH_FILE,
   query = "SELECT ?predicate ?object WHERE {
              ex:exp_rem01b ?predicate ?object .
-           }"
+           } ORDER BY ?predicate"
 )
 print(res)
 
 # ---------------------------------------------------------------------
-# 2b. All thermochemistry/electronic energy results in one table
-#     Nothing to change - works as-is across any graph
+# 2b. All thermochemistry/electronic energy results in one table,
+#     WITH units - CHANGED: now fetches gc:hasUnit too, not just the
+#     bare number, which the original version of this example omitted.
 # ---------------------------------------------------------------------
 cat("\n=== System energies ===\n")
 res <- sparql_query(
   graph_file = GRAPH_FILE,
-  query = "SELECT ?energies ?prop ?val WHERE {
+  query = "SELECT ?energies ?prop ?val ?unit WHERE {
              ?energies a gc:SystemEnergies .
              ?energies ?prop ?fv .
              ?fv gc:hasFloatValue ?val .
+             ?fv gc:hasUnit ?unit .
              FILTER(?prop IN (gc:hasZeroPointEnergy, gc:hasEnthalpy, gc:hasEntropy,
                                gc:hasGibbsFreeEnergy, gc:hasElectronicEnergy))
-           } ORDER BY ?energies"
+           } ORDER BY ?energies ?prop"
 )
 print(res)
 
@@ -80,7 +82,7 @@ res <- sparql_query(
   query = "SELECT ?earlier_exp ?file ?later_exp WHERE {
              ?file prov:wasGeneratedBy ?earlier_exp .
              ?later_exp ex:hasInputFile ?file .
-           }"
+           } ORDER BY ?earlier_exp ?later_exp"
 )
 print(res)
 
@@ -97,7 +99,7 @@ res <- sparql_query(
              ?constraint a ?type ; ex:targetValue ?target ; gc:hasUnit gc:angstrom .
              FILTER(?target = 2.0)
              FILTER(?type IN (ex:DistanceConstraint, ex:AngleConstraint, ex:DihedralConstraint))
-           }"
+           } ORDER BY ?constraint"
 )
 print(res)
 
@@ -139,6 +141,13 @@ print(res)
 #
 #   is always a safe way to explore something you don't yet know the
 #   shape of.
+# - SPARQL makes no guarantee about result order unless you add
+#   ORDER BY - found twice in practice: results appeared in what
+#   looked like a random order (neither alphabetical nor sorted by
+#   value), because nothing had actually asked for either. Every
+#   example in this file now has an explicit ORDER BY for exactly this
+#   reason - worth adding to your own queries too, rather than
+#   assuming any particular order without asking for one.
 #
 # This is deliberately not a full SPARQL tutorial - for that, the
 # official W3C SPARQL 1.1 Query Language spec
