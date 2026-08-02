@@ -87,12 +87,15 @@ print(res)
 # ---------------------------------------------------------------------
 # 2d. Filter constraints to just one target value
 #     CHANGE: 2.0 to whatever value you're actually interested in
+#     Uses FILTER rather than a direct literal match in the pattern -
+#     see the primer below for why that distinction matters here.
 # ---------------------------------------------------------------------
 cat("\n=== Constraints with a specific target value ===\n")
 res <- sparql_query(
   graph_file = GRAPH_FILE,
   query = "SELECT ?constraint ?type WHERE {
-             ?constraint a ?type ; ex:targetValue 2.0 ; gc:hasUnit gc:angstrom .
+             ?constraint a ?type ; ex:targetValue ?target ; gc:hasUnit gc:angstrom .
+             FILTER(?target = 2.0)
              FILTER(?type IN (ex:DistanceConstraint, ex:AngleConstraint, ex:DihedralConstraint))
            }"
 )
@@ -120,6 +123,15 @@ print(res)
 #   membership in a list, < / > do numeric comparison (only on
 #   properly-typed numeric literals - see the real bug this project hit
 #   with this exact class of comparison, now fixed).
+# - A bare number written directly in a triple pattern (e.g.
+#   "ex:targetValue 2.0") is NOT the same as filtering for that value -
+#   a real bug found this way: a plain "2.0" typically parses as
+#   xsd:decimal, which does not exact-match real data stored as
+#   xsd:float, even though they're the same number. Use
+#   ?x ex:targetValue ?val . FILTER(?val = 2.0) instead of a direct
+#   literal in the pattern - FILTER's numeric comparison correctly
+#   works across compatible types, a direct pattern match requires
+#   exact term equality, datatype included.
 # - Every gc:/ex:/prov: name used above is real - to see EVERY property
 #   a specific individual actually has, with no assumptions:
 #
