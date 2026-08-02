@@ -22,8 +22,16 @@ GRAPH_FILE <- "path/to/your/built_graph.ttl"
 
 source("gamess_functions/R/sparql_to_file.R")     # adjust path to your gamess_functions checkout
 source("gamess_functions/R/summarize_graph.R")
+source("gamess_functions/R/shorten_uris.R")
 
 stopifnot(file.exists(GRAPH_FILE))
+
+# Optional throughout this file: wrap any result in shorten_uris() for
+# short, readable names instead of full URIs, e.g.:
+#   print(shorten_uris(res))
+# instead of:
+#   print(res)
+# Numbers and free text pass through untouched - only URIs get shortened.
 
 # =======================================================================
 # TIER 1 - zero SPARQL required
