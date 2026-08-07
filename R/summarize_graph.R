@@ -37,7 +37,7 @@ summarize_graph <- function(graph_file) {
     graph_file = graph_file,
     query = "SELECT ?exp ?comment WHERE {
                ?exp a gc:MolecularComputation .
-               ?exp rdfs:comment ?comment .
+               ?exp skos:editorialNote ?comment .
              } ORDER BY ?exp"
   )
   cat("\nYour own review notes:", nrow(annotations), "\n")

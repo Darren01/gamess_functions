@@ -78,7 +78,7 @@ notes_to_annotations <- function(notes_file) {
 #' @export
 write_annotations <- function(rows, output_file) {
   header <- c("ID", "Type", "Comment")
-  type_row <- c("ID", "TYPE", "A rdfs:comment")
+  type_row <- c("ID", "TYPE", "A skos:editorialNote")
 
   writeLines(paste(header, collapse = "\t"), output_file)
   write(paste(type_row, collapse = "\t"), output_file, append = TRUE)

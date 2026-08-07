@@ -6,9 +6,9 @@
 #' `robot query --input <graph_file> --query <query_file> <output_file>`,
 #' and reads the result back in as a data.frame.
 #'
-#' PREFIX declarations for ex:, gc:, prov:, rdf:, rdfs:, owl:, and dcterms:
-#' are added automatically unless the query text already declares them
-#' itself, so day-to-day queries can omit the boilerplate.
+#' PREFIX declarations for ex:, gc:, prov:, rdf:, rdfs:, owl:, dcterms:,
+#' and skos: are added automatically unless the query text already
+#' declares them itself, so day-to-day queries can omit the boilerplate.
 #'
 #' @param graph_file Path to the ontology/graph file to query
 #'   (e.g. "builds/gc_core.ttl").
@@ -40,7 +40,8 @@ sparql_query <- function(graph_file,
     rdf     = "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
     rdfs    = "http://www.w3.org/2000/01/rdf-schema#",
     owl     = "http://www.w3.org/2002/07/owl#",
-    dcterms = "http://purl.org/dc/terms/"
+    dcterms = "http://purl.org/dc/terms/",
+    skos    = "http://www.w3.org/2004/02/skos/core#"
   )
 
   # user-supplied prefixes override defaults with the same name
