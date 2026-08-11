@@ -65,13 +65,19 @@ interpret_basis <- function(b) {
                  "DZV"  = "DZV",
                  "TZV"  = "TZV",
                  "CC"   = "cc-pVXZ",
+                 "ACCT" = "aug-cc-pVTZ",  # confirmed from a real input deck's own comment
                  b$gbasis
   )
   
   # ---- Diffuse functions (+, ++) ----
   plus <- ""
-  if (!is.na(b$diffsp) && b$diffsp == ".TRUE.") plus <- "+"
-  if (!is.na(b$diffs)  && b$diffs  == ".TRUE.") plus <- paste0(plus, "+")
+  # GAMESS accepts both abbreviated (.T.) and full (.TRUE.) boolean
+  # syntax in its input - a real file (caa005bTSa.log) used .t.,
+  # confirming this isn't a hypothetical case worth guarding against.
+  is_true <- function(x) !is.na(x) && toupper(x) %in% c(".TRUE.", ".T.")
+
+  if (is_true(b$diffsp)) plus <- "+"
+  if (is_true(b$diffs))  plus <- paste0(plus, "+")
   
   # Special handling for Dunning sets
   if (b$gbasis == "CC" && plus != "") {
