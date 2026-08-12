@@ -12,29 +12,69 @@ The goal is to support reproducible and scalable computational chemistry workflo
 
 These tools are designed not just for extraction, but for diagnosing the quality and reliability of quantum chemical calculations.
 
+**This project pairs with [ont_mm](https://github.com/Darren01/ont_mm)**, which takes what gets extracted here and builds it into a queryable RDF/OWL ontology graph (grounded in the [Gainesville Core](https://github.com/Darren01/GC-Ontology-Mirror) vocabulary). The "Output parsing" functions below work entirely standalone - point one at a `.log` file and get structured data back, no ontology involved at all. The "Ontology writers" and "Ontology integration and querying" sections are specifically where the two projects meet: writers turn extracted data into `gc:`/`ex:` template rows for `ont_mm`'s `build_ontology_graph()`, and the querying functions (`summarize_graph()`, `compare_energies()`, `sparql_query()`) read back the graph that produces. Neither half needs the other to be useful on its own.
+
 ---
 
 ## Available functions
 
 ### Output parsing
-- [extract_nmr()](./R/extract_nmr.R) – Extract NMR shielding data
-- [IRC_energy()](./R/IRC_energy.R) – Retrieve calculated energies
-- [extract_ir_diagnostics()](./R/extract_ir_diagnostics.R) – Extract vibrational frequencies and assess geometry quality via translation/rotation modes
-- **[extract_geometry_trajectory()](./R/extract_geometry_trajectory.R)** - Extract optimisation trajectory (geometries + energies) from GAMESS output
+Raw extraction from `.log` files - what a calculation actually produced.
 
+- [extract_ir_spectrum()](./R/extract_ir_spectrum.R) – Extract the full vibrational frequency/intensity spectrum
+- [extract_ir_diagnostics()](./R/extract_ir_diagnostics.R) – Extract vibrational frequencies and identify translation/rotation modes specifically, for geometry-quality diagnosis
+- [extract_thermochemistry()](./R/extract_thermochemistry.R) – Zero-point energy, enthalpy, entropy, Gibbs free energy, and the temperature they were computed at
+- [extract_electronic_energy()](./R/extract_electronic_energy.R) – The uncorrelated SCF reference energy from a `SinglePoint` run (`FINAL ... ENERGY IS`)
+- [extract_pcm_free_energy()](./R/extract_pcm_free_energy.R) – The real, correlated/solvated "gold standard" energy from a high-precision `SinglePoint` run - correctly distinguishes a PCM-solvated CCSD(T)-type result from the plain SCF reference that `extract_electronic_energy()` finds, and fails loudly rather than silently returning an incomplete value for a correlated-method-without-PCM or unrecognized-solvation-method file
+- [extract_nmr()](./R/extract_nmr.R) – Extract GIAO NMR shielding tensors (isotropic + anisotropy) per atom
+- [extract_irc_trajectory()](./R/extract_irc_trajectory.R) – Extract one direction (forward or backward) of an intrinsic reaction coordinate run
+- [combine_irc_trajectories()](./R/combine_irc_trajectories.R) – Stitch a forward + backward IRC pair sharing the same saddle point into one combined reaction path
+- [extract_constraints()](./R/extract_constraints.R) – Extract distance/angle/dihedral constraints from a geometry optimisation
+- [extract_geometry_trajectory()](./R/extract_geometry_trajectory.R) – Extract the full optimisation trajectory (every geometry + energy + step index), identifying the converged final structure
+- [geometry_to_atoms()](./R/geometry_to_atoms.R) – Extract per-atom Cartesian coordinates as individually-addressable atoms
 
 ### Input parsing
+Shared, `.inp`-or-`.log`-agnostic parsing of what a calculation actually asked for.
+
 - [strip_input_card_prefix()](./R/gamess_input_utils.R), [get_gamess_block()](./R/gamess_input_utils.R), [parse_gamess_block()](./R/gamess_input_utils.R) – Shared block-matching helpers: find and parse a `$GROUP ... $END` block from either a raw `.inp` file or a `.log` file's echoed `INPUT CARD>` text. Every other input-parsing function below is built on these - source this file first.
-- [extract_basis_name()](./R/extract_basis.R) – Extract and interpret basis sets (e.g. `6-31+G*`, `6-311++G**`, `aug-cc-pVXZ`). Works on `.inp` or `.log`.
-- [classify_gamess_job()](./R/classify_gamess_jobs.R), [classify_gamess_jobs()](./R/classify_gamess_jobs.R) – Classify a job by RUNTYP/HSSEND (GeometryOptimization, SinglePoint, VibrationalAnalysis), single file or batch over a directory. Works on `.inp` or `.log`.
-- [extract_input_parameters()](./R/extract_input_parameters.R) – Full `$CONTRL`/`$STATPT`/`$SCF` run parameters plus basis set in one call (RUNTYP, SCFTYP, DFTTYP, charge, multiplicity, convergence criteria). The calculation-metadata companion to `classify_gamess_job()`. Works on `.inp` or `.log`.
+- [extract_basis_name()](./R/extract_basis.R), [extract_basis_folder()](./R/extract_basis.R) – Extract and interpret basis sets (e.g. `6-31+G*`, `6-311++G**`, `aug-cc-pVXZ`), single file or a whole folder
+- [extract_level_of_theory()](./R/extract_level_of_theory.R) – A human-readable level-of-theory label combining basis set, method, and solvent (e.g. `"CCSD(T)/aug-cc-pVTZ PCM(water)"`) - reuses `extract_basis_name()` rather than its own basis interpretation, and explicitly refuses to guess at a `BASNAM` (mixed/custom per-atom basis) job rather than produce a misleadingly simple label
+- [classify_gamess_job()](./R/classify_gamess_jobs.R), [classify_gamess_jobs()](./R/classify_gamess_jobs.R) – Classify a job by RUNTYP/HSSEND (GeometryOptimization, SinglePoint, VibrationalAnalysis, SaddlePoint, IRC), single file or batch over a directory
+- [extract_input_parameters()](./R/extract_input_parameters.R) – Full `$CONTRL`/`$STATPT`/`$SCF` run parameters plus basis set in one call (RUNTYP, SCFTYP, DFTTYP, charge, multiplicity, convergence criteria)
 
-### Ontology integration
-- [sparql_query()](./R/sparql_to_file.R) – Run a SPARQL SELECT against a local ontology/graph file via `robot query`
-- [resolve_file_url()](./R/sparql_to_file.R) – Resolve an `ex:fileURL` (`file://...`) to a local filesystem path
-- [batch_resolve()](./R/sparql_to_file.R) – Resolve and check a whole vector of `ex:fileURL` values at once, flagging anything missing
+### Quality and diagnostic checks
+Is this result trustworthy, converged, and consistent with what came before it?
 
-* *(ongoing)*
+- [check_vibrational_quality()](./R/check_vibrational_quality.R) – Is this geometry converged, or does it need another optimisation iteration? The pipeline-driving check used by `process_results.R` - reports status, doesn't decide whether to write results
+- [check_geometry_quality()](./R/check_geometry_quality.R) – Classifies the stationary point type (minimum / transition state / higher-order saddle) from the number of imaginary frequencies, and reports translation/rotation quality
+- [check_geometry_continuity()](./R/check_geometry_continuity.R) – Does a later geometry genuinely follow from an earlier one, or do they look unrelated?
+- [check_geometry_chain()](./R/check_geometry_chain.R) – Walk a whole sequence of runs, flagging genuine breaks vs. deliberate large moves (e.g. a scan step) vs. continuous refinement
+- [check_deliberate_constraint_adjustment()](./R/check_deliberate_constraint_adjustment.R) – Confirm a geometry change matches a specific, deliberate constraint adjustment (the changed atoms moved as expected, everything else stayed put)
+- [check_source_sync()](./R/check_source_sync.R) – Confirm two copies of a shared source file (e.g. the `gc:` ontology mirror) are genuinely in sync before a build
+
+### Ontology writers
+Turn extracted data into `gc:`/`ex:` template rows for `ont_mm`'s `build_ontology_graph()` - the bridge between raw extraction and a queryable graph.
+
+- [ir_spectrum_to_templates()](./R/ir_spectrum_to_templates.R) – Spectrum/peak/float-value rows from `extract_ir_spectrum()`'s output
+- [thermochemistry_to_templates()](./R/thermochemistry_to_templates.R) – SystemEnergies rows from `extract_thermochemistry()`'s output
+- [electronic_energy_to_templates()](./R/electronic_energy_to_templates.R) – SystemEnergies rows from a `SinglePoint` run's electronic energy
+- [reaction_path_to_templates()](./R/reaction_path_to_templates.R) – ReactionPath/ReactionPathPoint rows from `combine_irc_trajectories()`'s output
+- [constraints_to_templates()](./R/constraints_to_templates.R) – DistanceConstraint/AngleConstraint/DihedralConstraint rows from `extract_constraints()`'s output
+- [nmr_to_templates()](./R/nmr_to_templates.R) – Links real `gc:Atom` individuals to their computed NMR shielding values (requires `geometry_to_atoms()` already run for the same experiment)
+- [notes_to_annotations()](./R/notes_to_annotations.R), [write_annotations()](./R/notes_to_annotations.R) – Turn a `run_notes.tsv` of your own review comments into `skos:editorialNote` annotation rows. Safe to re-run after editing your notes - regenerates fresh each time rather than appending, so revisiting old notes never duplicates them
+
+### Ontology integration and querying
+Once a graph is built - explore and analyse it.
+
+- [sparql_query()](./R/sparql_to_file.R) – Run a SPARQL SELECT against a local ontology/graph file via `robot query`, with common `PREFIX` declarations added automatically
+- [resolve_file_url()](./R/sparql_to_file.R), [batch_resolve()](./R/sparql_to_file.R) – Resolve an `ex:fileURL` (or a whole vector of them) to real local filesystem paths, flagging anything missing
+- [summarize_graph()](./R/summarize_graph.R) – A full overview of a built graph with zero SPARQL required: experiments, your own review notes, imaginary-frequency quality flags, constraints
+- [shorten_uris()](./R/shorten_uris.R) – Strip namespace prefixes from any query result for readable display (`http://purl.org/gc/angstrom` → `angstrom`)
+- [compare_energies()](./R/compare_energies.R) – Raw energy differences (electronic, ZPE, enthalpy, entropy, Gibbs) between two experiments - e.g. substrate vs. transition state for an activation energy
+- [thermochemistry_table()](./R/thermochemistry_table.R), [print_markdown_table()](./R/thermochemistry_table.R) – A summary table across multiple log files (ScanNo/ZPE/Enthalpy/Entropy/Gibbs/LevelOfTheory/Notes), with a copy-paste-ready Markdown print option
+
+### Legacy
+- [IRC_energy()](./R/IRC_energy.R) – Plots a reaction-path energy profile from an Avogadro-exported `.cml` file. Superseded by `extract_irc_trajectory()` + `combine_irc_trajectories()`, which build the same combined path directly from the two native GAMESS logs, no Avogadro export step needed. Has a known, unfixed bug: the y-axis is labelled kJ/mol but the conversion factor (627.51) is actually Hartree→kcal/mol. Kept for now in case existing `.cml` files are still in use somewhere, not recommended for new work.
 
 ---
 
@@ -196,6 +236,92 @@ runnable end-to-end check against a real ont_mm graph.
 
 ---
 
+## Querying a built graph
+
+Once [ont_mm](https://github.com/Darren01/ont_mm)'s `build_ontology_graph()`
+has produced a real graph, these are the tools for actually getting answers
+back out of it - from zero SPARQL required, up to writing your own.
+
+**No SPARQL at all** - a full overview in one call:
+
+```r
+source("R/summarize_graph.R")
+summarize_graph("path/to/gc_core_full.ttl")
+```
+
+```
+=== Summary of gc_core_full.ttl ===
+
+Experiments: 3
+GeometryOptimization  VibrationalAnalysis
+                   2                    1
+
+Your own review notes: 0
+
+Imaginary (negative) frequencies found: 0
+
+Constraints: 6
+```
+
+(Real output against `ont_mm`'s own bundled `rem01`/`rem01a`/`rem01b`
+example - genuinely sparse for a small 3-experiment demo, shown honestly
+rather than dressed up. On an actively-used project, the review-notes and
+imaginary-frequency lines are usually where the useful signal shows up.)
+
+**One specific, real question** - raw energy differences between two
+experiments (e.g. an activation energy, substrate vs. transition state):
+
+```r
+source("R/compare_energies.R")
+compare_energies("path/to/gc_core_full.ttl", "ex:exp_rem01", "ex:exp_rem01b")
+```
+
+Returns a data.frame: one row per energy quantity present in both
+experiments (quantity, value_a, value_b, difference, unit) - see
+`?compare_energies` for the exact shape.
+
+**A summary table across several files**, for a write-up - combines
+`extract_thermochemistry()` and `extract_level_of_theory()` directly:
+
+```r
+source("R/thermochemistry_table.R")
+
+files <- c("examples/rem01.log", "examples/rem01b.log")
+notes <- c(rem01b = "Second optimisation step")
+
+tbl <- thermochemistry_table(files, notes)
+print_markdown_table(tbl)   # copy-paste-ready for a Markdown document
+```
+
+**Writing your own SPARQL**, with a tiered path from templates to
+first-principles: see
+[`examples/query_your_ontology.R`](./examples/query_your_ontology.R).
+
+Every function above works entirely independently of the others - use
+`summarize_graph()` on its own without ever touching `compare_energies()`,
+or write raw SPARQL via `sparql_query()` without any of the higher-level
+wrappers at all.
+
+---
+
+## Standalone use, without the ontology at all
+
+Everything in "Output parsing" and "Input parsing" above works as a
+complete, self-contained tool against a single file - most were built as
+building blocks in the larger `ont_mm`-driven pipeline, but none require
+it:
+
+```r
+source("R/extract_thermochemistry.R")
+extract_thermochemistry("examples/rem01b.log")
+```
+
+Returns a one-row data.frame: file, temperature (+ unit), zpe (+ unit),
+enthalpy (+ unit), gibbs (+ unit), entropy (+ unit) - no graph, no
+ontology, no `ont_mm` involved, just the numbers from that one file.
+
+---
+
 ## Input parsing internals
 
 `.inp` files and `.log` files represent the same GAMESS input differently:
@@ -227,17 +353,44 @@ rather than a default that looks like a real value. Check
 ```
 gamess_functions/
 ├── R/
-│ ├── extract_nmr.R
-│ ├── IRC_energy.R
 │ ├── gamess_input_utils.R
 │ ├── extract_basis.R
+│ ├── extract_level_of_theory.R
 │ ├── classify_gamess_jobs.R
 │ ├── extract_input_parameters.R
+│ ├── extract_ir_spectrum.R
 │ ├── extract_ir_diagnostics.R
+│ ├── extract_thermochemistry.R
+│ ├── extract_electronic_energy.R
+│ ├── extract_pcm_free_energy.R
+│ ├── extract_nmr.R
+│ ├── extract_irc_trajectory.R
+│ ├── combine_irc_trajectories.R
+│ ├── extract_constraints.R
 │ ├── extract_geometry_trajectory.R
+│ ├── geometry_to_atoms.R
+│ ├── check_vibrational_quality.R
+│ ├── check_geometry_quality.R
+│ ├── check_geometry_continuity.R
+│ ├── check_geometry_chain.R
+│ ├── check_deliberate_constraint_adjustment.R
+│ ├── check_source_sync.R
+│ ├── ir_spectrum_to_templates.R
+│ ├── thermochemistry_to_templates.R
+│ ├── electronic_energy_to_templates.R
+│ ├── reaction_path_to_templates.R
+│ ├── constraints_to_templates.R
+│ ├── nmr_to_templates.R
+│ ├── notes_to_annotations.R
 │ ├── sparql_to_file.R
-│ └── ...
+│ ├── summarize_graph.R
+│ ├── shorten_uris.R
+│ ├── compare_energies.R
+│ ├── thermochemistry_table.R
+│ └── IRC_energy.R (legacy)
 ├── examples/
+│ ├── query_your_ontology.R
+│ └── rem01d.log
 ├── tests/
 │ ├── test_sparql_to_file.R
 │ └── test_classify_gamess_job.R
@@ -256,24 +409,52 @@ Each function is stored as a separate `.R` file for clarity and reuse.
 * Automating extraction from multiple GAMESS jobs
 * Tracking optimisation convergence
 * Extracting full reaction or optimisation trajectories
+* Querying a built [ont_mm](https://github.com/Darren01/ont_mm) graph directly with SPARQL - or without writing any SPARQL at all, via `summarize_graph()`. `examples/query_your_ontology.R` has a tiered path between the two: pre-built functions, copy-paste query templates, then a short primer for writing your own
+* Every function here works standalone too, independent of the ontology side entirely - most were built as part of the larger extraction pipeline, but each is a complete, self-contained tool in its own right for ad-hoc use against a single file
 
 ---
 
 ## Future work
 
-* Feed extract_input_parameters() calculation metadata (basis, charge,
-  multiplicity, functional) into ont_mm results-template writers, once
-  the results schema is aligned to gc:CalculationResult/FloatValue
-  (in progress)
+* Feed calculation metadata (basis, method, solvent) into ont_mm
+  results-template writers, so it lives in the graph itself, not just
+  a summary table - `extract_level_of_theory()` is a start (produces
+  the label), but nothing writes it into the graph yet
+* A combined level-of-theory label spanning two files (e.g.
+  `CCSD(T)/aug-cc-pVTZ // 6-31G(d,p)`, geometry level // energy level)
+  for gold-standard single points run at a different geometry's level
+  than the geometry itself was optimised at
+* Extend `extract_electronic_energy()`/`thermochemistry_to_templates()`
+  to correctly extract electronic energy for non-`SinglePoint` job
+  types (`VibrationalAnalysis`, etc.) - GAMESS prints multiple `FINAL
+  ... ENERGY IS` lines across an optimisation's steps, only the last
+  is the converged one, not yet handled
+* Extend `extract_pcm_free_energy()` for a correlated method run
+  without PCM, and for solvation methods other than PCM (COSMO, SMD) -
+  currently fails loudly rather than guessing at either, deliberately,
+  until each has its own verified extraction path
+* Temperature isn't yet captured in the graph at all - `gc:
+  hasSystemTemperature`'s real declared domain is `gc:MolecularSystem`,
+  a concept this project hasn't instantiated; needs a deliberate design
+  decision, not a quick patch
 * Improve support for Dunning and ECP basis sets
-* Add validation and error handling to the older functions (extract_nmr,
-  IRC_energy)
+* Add validation and error handling to IRC_energy() (or retire it -
+  see its Legacy note above)
 * Export trajectories to .xyz for visualisation
 * Develop into a lightweight R package
+* A Shiny front end for the ontology-querying functions, once there's
+  a clear audience beyond direct R/RStudio use to justify the added
+  maintenance surface - deliberately parked, not forgotten.
+  `summarize_graph()`'s design (return structured data, print as a
+  convenience) is deliberately kept that way specifically to make this
+  cheap to add later
 
 ## Author
 
 [Darren Rhodes]
+
+## Acknowledgements
+Built by Darren Rhodes, using Claude (Anthropic) as a technical assistant for R development, ontology design, and documentation.
 
 ## License
 
