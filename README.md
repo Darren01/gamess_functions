@@ -74,7 +74,7 @@ Once a graph is built - explore and analyse it.
 - [thermochemistry_table()](./R/thermochemistry_table.R), [print_markdown_table()](./R/thermochemistry_table.R) – A summary table across multiple log files (ScanNo/ZPE/Enthalpy/Entropy/Gibbs/LevelOfTheory/Notes), with a copy-paste-ready Markdown print option
 
 ### Legacy
-- [IRC_energy()](./R/IRC_energy.R) – Plots a reaction-path energy profile from an Avogadro-exported `.cml` file. Superseded by `extract_irc_trajectory()` + `combine_irc_trajectories()`, which build the same combined path directly from the two native GAMESS logs, no Avogadro export step needed. Has a known, unfixed bug: the y-axis is labelled kJ/mol but the conversion factor (627.51) is actually Hartree→kcal/mol. Kept for now in case existing `.cml` files are still in use somewhere, not recommended for new work.
+- [IRC_energy()](./R/IRC_energy.R) – Plots a reaction-path energy profile from a [wxMacMolPlt](https://github.com/brettbode/wxmacmolplt)-exported `.cml` file (Bode, B. M.; Gordon, M. S. *J. Mol. Graphics Modell.* 1999, 16(3), 133-138, DOI: 10.1016/S1093-3263(99)00002-9 - the GAMESS (US) community's standard visualization tool). Superseded by `extract_irc_trajectory()` + `combine_irc_trajectories()`, which build the same combined path directly from the two native GAMESS (US) logs, no wxMacMolPlt export step needed. Had a known unit-label bug (fixed): the y-axis was labelled kJ/mol, but the conversion factor (627.51) is actually Hartree→kcal/mol. Kept for now in case existing `.cml` files are still in use somewhere, not recommended for new work.
 
 ---
 
@@ -99,7 +99,7 @@ NSERCH: n E= -XXX.XXXXXXXX
 
 ### Important notes
 
-- GAMESS may print:
+- GAMESS (US) may print:
 - more geometries than energies
 - repeated geometries at convergence
 - Therefore:
@@ -324,7 +324,7 @@ ontology, no `ont_mm` involved, just the numbers from that one file.
 
 ## Input parsing internals
 
-`.inp` files and `.log` files represent the same GAMESS input differently:
+`.inp` files and `.log` files represent the same GAMESS (US) input differently:
 a raw `.inp` has `$CONTRL RUNTYP=OPTIMIZE $END` starting the line, while a
 `.log` echoes the same line prefixed with `INPUT CARD>`. Several functions
 here need to read `$CONTRL`/`$STATPT`/`$SCF`/`$BASIS` blocks, and used to
@@ -340,7 +340,7 @@ that works identically on either file type, used by every other
 input-parsing function. Source it first.
 
 A related fix in `extract_input_parameters()`: `charge`/`multiplicity`
-fall back to GAMESS's real defaults (`ICHARG=0`, `MULT=1`) only when the
+fall back to GAMESS (US)'s real defaults (`ICHARG=0`, `MULT=1`) only when the
 `$CONTRL` block was found but that specific keyword was absent - a
 legitimate case. If the block wasn't found at all, they come back `NA`
 rather than a default that looks like a real value. Check
@@ -406,7 +406,7 @@ Each function is stored as a separate `.R` file for clarity and reuse.
 * NMR data analysis
 * Comparing computed and experimental results
 * Feeding data into downstream models (e.g. DP4)
-* Automating extraction from multiple GAMESS jobs
+* Automating extraction from multiple GAMESS (US) jobs
 * Tracking optimisation convergence
 * Extracting full reaction or optimisation trajectories
 * Querying a built [ont_mm](https://github.com/Darren01/ont_mm) graph directly with SPARQL - or without writing any SPARQL at all, via `summarize_graph()`. `examples/query_your_ontology.R` has a tiered path between the two: pre-built functions, copy-paste query templates, then a short primer for writing your own
@@ -426,7 +426,7 @@ Each function is stored as a separate `.R` file for clarity and reuse.
   than the geometry itself was optimised at
 * Extend `extract_electronic_energy()`/`thermochemistry_to_templates()`
   to correctly extract electronic energy for non-`SinglePoint` job
-  types (`VibrationalAnalysis`, etc.) - GAMESS prints multiple `FINAL
+  types (`VibrationalAnalysis`, etc.) - GAMESS (US) prints multiple `FINAL
   ... ENERGY IS` lines across an optimisation's steps, only the last
   is the converged one, not yet handled
 * Extend `extract_pcm_free_energy()` for a correlated method run
@@ -438,8 +438,12 @@ Each function is stored as a separate `.R` file for clarity and reuse.
   a concept this project hasn't instantiated; needs a deliberate design
   decision, not a quick patch
 * Improve support for Dunning and ECP basis sets
-* Add validation and error handling to IRC_energy() (or retire it -
-  see its Legacy note above)
+* IRC_energy()'s unit-label bug is now fixed, but it still only
+  produces a plot with no structured data returned - unlike everything
+  else in this package. Worth deciding whether to bring it in line
+  with the rest (return a data.frame, plot as a convenience) or retire
+  it entirely now that extract_irc_trajectory()/
+  combine_irc_trajectories() cover the same ground natively
 * Export trajectories to .xyz for visualisation
 * Develop into a lightweight R package
 * A Shiny front end for the ontology-querying functions, once there's
