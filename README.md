@@ -72,6 +72,7 @@ Once a graph is built - explore and analyse it.
 - [shorten_uris()](./R/shorten_uris.R) – Strip namespace prefixes from any query result for readable display (`http://purl.org/gc/angstrom` → `angstrom`)
 - [compare_energies()](./R/compare_energies.R) – Raw energy differences (electronic, ZPE, enthalpy, entropy, Gibbs) between two experiments - e.g. substrate vs. transition state for an activation energy
 - [thermochemistry_table()](./R/thermochemistry_table.R), [print_markdown_table()](./R/thermochemistry_table.R) – A summary table across multiple log files (ScanNo/ZPE/Enthalpy/Entropy/Gibbs/LevelOfTheory/Notes), with a copy-paste-ready Markdown print option
+- [validate_graph_shacl()](./R/validate_graph_shacl.R) – Validate a built graph against a SHACL shapes file (e.g. [ont_mm](https://github.com/Darren01/ont_mm)'s `shapes/gc_core_shapes.ttl`) via Jena's `shacl` command-line tool - catches real data-quality problems (wrong datatypes, values in the wrong place) that neither `robot report` nor OWL reasoning are designed to check. Requires `shacl` on your PATH (Apache Jena command-line tools); works around a real, confirmed Jena quirk where a stale `JAVA_HOME` silently breaks it even when a perfectly good Java is available via `which java`
 
 ### Legacy
 - [IRC_energy()](./R/IRC_energy.R) – Plots a reaction-path energy profile from a [wxMacMolPlt](https://github.com/brettbode/wxmacmolplt)-exported `.cml` file (Bode, B. M.; Gordon, M. S. *J. Mol. Graphics Modell.* 1999, 16(3), 133-138, DOI: 10.1016/S1093-3263(99)00002-9 - the GAMESS (US) community's standard visualization tool). Superseded by `extract_irc_trajectory()` + `combine_irc_trajectories()`, which build the same combined path directly from the two native GAMESS (US) logs, no wxMacMolPlt export step needed. Had a known unit-label bug (fixed): the y-axis was labelled kJ/mol, but the conversion factor (627.51) is actually Hartree→kcal/mol. Kept for now in case existing `.cml` files are still in use somewhere, not recommended for new work.
@@ -387,6 +388,7 @@ gamess_functions/
 │ ├── shorten_uris.R
 │ ├── compare_energies.R
 │ ├── thermochemistry_table.R
+│ ├── validate_graph_shacl.R
 │ └── IRC_energy.R (legacy)
 ├── examples/
 │ ├── query_your_ontology.R
