@@ -64,7 +64,7 @@ notes_to_annotations <- function(notes_file) {
     doi <- trimws(doi)
     doi <- sub("^<|>$", "", doi)
     doi <- sub("^https?://doi\\.org/", "", doi)
-    paste0("<https://doi.org/", doi, ">")
+    paste0("https://doi.org/", doi)
   }
 
   rows <- lapply(lines, function(line) {
