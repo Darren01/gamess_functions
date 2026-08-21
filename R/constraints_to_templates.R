@@ -22,7 +22,7 @@ constraints_to_templates <- function(constraints_df, experiment_id) {
   empty <- data.frame(ID = character(0), Label = character(0), Type = character(0),
                        hasConstraint = character(0), involvesAtom1 = character(0),
                        involvesAtom2 = character(0), involvesAtom3 = character(0),
-                       involvesAtom4 = character(0), targetValue = numeric(0),
+                       involvesAtom4 = character(0), targetValue = character(0),
                        hasUnit = character(0), constraintMode = character(0),
                        forceConstant = character(0), stringsAsFactors = FALSE)
 
@@ -51,7 +51,14 @@ constraints_to_templates <- function(constraints_df, experiment_id) {
       Type = "gc:MolecularComputation",
       hasConstraint = cid,
       involvesAtom1 = "", involvesAtom2 = "", involvesAtom3 = "", involvesAtom4 = "",
-      targetValue = 0, hasUnit = "", constraintMode = "", forceConstant = "",
+      # NOTE: targetValue is "" (empty string), matching hasUnit/
+      # constraintMode/forceConstant on this same line - a real bug
+      # found via SHACL validation: this was previously the literal
+      # number 0, which robot's "AT ex:targetValue^^xsd:float" typed
+      # column then wrote as a genuine 0.0 triple on every experiment-
+      # linking row, rather than correctly producing no triple at all
+      # for a value this row was never meant to have.
+      targetValue = "", hasUnit = "", constraintMode = "", forceConstant = "",
       stringsAsFactors = FALSE
     )
   }

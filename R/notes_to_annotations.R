@@ -29,7 +29,7 @@
 #'
 #' The DOI(s), if present, are linked using the exact same resolvable
 #' URL form used for the paper's own ID in doi_notes_to_templates() -
-#' <https://doi.org/...> - so a query joining on dcterms:relation
+#' https://doi.org/... - so a query joining on dcterms:relation
 #' always matches correctly on both sides, without either side needing
 #' to know how the other generates its IDs.
 #'
@@ -64,7 +64,7 @@ notes_to_annotations <- function(notes_file) {
     doi <- trimws(doi)
     doi <- sub("^<|>$", "", doi)
     doi <- sub("^https?://doi\\.org/", "", doi)
-    paste0("<https://doi.org/", doi, ">")
+    paste0("https://doi.org/", doi)
   }
 
   rows <- lapply(lines, function(line) {

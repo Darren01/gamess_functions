@@ -7,7 +7,7 @@
 #' and reads the result back in as a data.frame.
 #'
 #' PREFIX declarations for ex:, gc:, prov:, rdf:, rdfs:, owl:, dcterms:,
-#' and skos: are added automatically unless the query text already
+#' skos:, and bibo: are added automatically unless the query text already
 #' declares them itself, so day-to-day queries can omit the boilerplate.
 #'
 #' @param graph_file Path to the ontology/graph file to query
@@ -41,7 +41,8 @@ sparql_query <- function(graph_file,
     rdfs    = "http://www.w3.org/2000/01/rdf-schema#",
     owl     = "http://www.w3.org/2002/07/owl#",
     dcterms = "http://purl.org/dc/terms/",
-    skos    = "http://www.w3.org/2004/02/skos/core#"
+    skos    = "http://www.w3.org/2004/02/skos/core#",
+    bibo    = "http://purl.org/ontology/bibo/"
   )
 
   # user-supplied prefixes override defaults with the same name

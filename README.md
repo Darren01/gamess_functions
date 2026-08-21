@@ -296,7 +296,10 @@ print_markdown_table(tbl)   # copy-paste-ready for a Markdown document
 
 **Writing your own SPARQL**, with a tiered path from templates to
 first-principles: see
-[`examples/query_your_ontology.R`](./examples/query_your_ontology.R).
+[`examples/query_your_ontology.R`](./examples/query_your_ontology.R),
+or [`examples/README.md`](./examples/README.md) for the full
+explanation of the tiered approach - built specifically for anyone not
+yet comfortable writing SPARQL directly.
 
 Every function above works entirely independently of the others - use
 `summarize_graph()` on its own without ever touching `compare_energies()`,
@@ -416,7 +419,18 @@ Each function is stored as a separate `.R` file for clarity and reuse.
 
 ---
 
+## Status
+
+**Stable and in active real-world use** - part of the working pipeline
+behind a real, ongoing computational chemistry project, not just a
+demonstration. Now in periodic review mode: real bugs found through
+actual use get fixed as they surface, not on a schedule. Worth raising
+anything that looks wrong or unclear - this isn't "finished and
+untouchable," just no longer under active, ground-up development.
+
 ## Future work
+
+Genuinely scoped, still-open gaps:
 
 * Feed calculation metadata (basis, method, solvent) into ont_mm
   results-template writers, so it lives in the graph itself, not just
@@ -447,13 +461,20 @@ Each function is stored as a separate `.R` file for clarity and reuse.
   it entirely now that extract_irc_trajectory()/
   combine_irc_trajectories() cover the same ground natively
 * Export trajectories to .xyz for visualisation
-* Develop into a lightweight R package
+
+**Anything larger belongs in its own project, not bolted onto this
+one:**
+
 * A Shiny front end for the ontology-querying functions, once there's
-  a clear audience beyond direct R/RStudio use to justify the added
-  maintenance surface - deliberately parked, not forgotten.
+  a clear audience beyond direct R/RStudio use to justify it.
   `summarize_graph()`'s design (return structured data, print as a
   convenience) is deliberately kept that way specifically to make this
-  cheap to add later
+  cheap to build later, whenever it happens
+* LinkML as a genuine alternative to `robot template` for instance
+  data generation - worth a real, honest comparison (including where
+  it falls short, not just where it's nicer), as its own project once
+  there's something solid to compare it against
+* Developing this into a lightweight, installable R package
 
 ## Author
 
