@@ -66,15 +66,7 @@ doi_notes_to_templates <- function(doi_notes_file, output_file) {
     # surname+year label that depends on a successful fetch - using the
     # DOI URL directly means both sides can always agree on the same ID
     # without needing to coordinate.
-    #
-    # NOTE: no angle brackets - robot's own docs explicitly document
-    # <...>-wrapped absolute IRIs as valid for AP (annotation
-    # property-object pair) columns specifically, but ID columns and I
-    # (object property) columns are documented only in terms of CURIEs
-    # or plain individual references, not that bracket syntax - a real,
-    # confirmed silent-drop failure on real data when brackets were
-    # included here.
-    id <- paste0("https://doi.org/", doi)
+    id <- paste0("<https://doi.org/", doi, ">")
     label <- paste0(first_author_surname, " ", if (!is.na(meta$year)) meta$year else "")
 
     creator_str <- if (length(meta$authors) > 0) paste(meta$authors, collapse = "|") else ""
