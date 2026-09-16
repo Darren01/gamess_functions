@@ -50,6 +50,11 @@ classify_gamess_job <- function(file) {
   }
 
   lines <- readLines(file, warn = FALSE)
+  # GAMESS's own comment character is "!" - strip everything from "!" to
+  # end of line BEFORE searching for RUNTYP/HSSEND, so a well-written
+  # explanatory comment mentioning a different, related RUNTYP value
+  # can't be mistaken for the file's own, real, active setting.
+  lines <- sub("!.*$", "", lines)
   text  <- toupper(paste(lines, collapse = " "))
 
   file_kind <- if (grepl("\\.inp$", file, ignore.case = TRUE)) "inp" else "log"
