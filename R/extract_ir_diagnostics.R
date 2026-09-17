@@ -27,9 +27,25 @@ extract_ir_diagnostics <- function(file) {
   text  <- toupper(paste(lines, collapse = " "))
 
   # ---- validate ----
-  if (!grepl("RUNTYP\\s*=\\s*OPTIMIZE", text) ||
-      !grepl("FREQUENCY", text)) {
-    stop("Not an optimisation + frequency GAMESS job: ", file)
+  # Trans/rot diagnostics are only meaningful when the frequency data
+  # itself is trustworthy - matching classify_gamess_jobs()'s own,
+  # already-established rule for exactly this: RUNTYP=OPTIMIZE with a
+  # genuine frequency stage, a standalone RUNTYP=HESSIAN (which always
+  # carries real frequency data), or RUNTYP=SADPOINT specifically with
+  # HSSEND=.t. (an unconverged/no-HSSEND SADPOINT search has no
+  # trustworthy Hessian to diagnose). Originally this only recognised
+  # RUNTYP=OPTIMIZE, silently skipping real experiments like a
+  # SADPOINT+HSSEND transition-state search or a standalone HESSIAN
+  # run - found via the aa example dataset's own real data.
+  is_optimize_freq <- grepl("RUNTYP\\s*=\\s*OPTIMIZE", text) && grepl("FREQUENCY", text)
+  is_hessian <- grepl("RUNTYP\\s*=\\s*HESSIAN", text)
+  is_sadpoint_hssend <- grepl("RUNTYP\\s*=\\s*SADPOINT", text) &&
+    grepl("HSSEND\\s*=\\s*\\.T\\.?", text, ignore.case = TRUE)
+
+  if (!(is_optimize_freq || is_hessian || is_sadpoint_hssend)) {
+    stop("Not a job with trustworthy frequency data (needs RUNTYP=OPTIMIZE ",
+         "with a frequency stage, RUNTYP=HESSIAN, or RUNTYP=SADPOINT with ",
+         "HSSEND=.t.): ", file)
   }
 
   # =========================================================
