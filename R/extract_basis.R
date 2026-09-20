@@ -64,11 +64,19 @@ interpret_basis <- function(b) {
   if (is.null(b) || is.na(b$gbasis)) return(NA_character_)
   
   # ---- Base mapping ----
+  # N21/N31/N311 are GBASIS *families*, not fixed basis sets on their
+  # own - GAMESS's own manual confirms N21 is genuinely valid with
+  # EITHER NGAUSS=3 (giving 3-21G) or NGAUSS=6 (giving a real,
+  # different basis, 6-21G). Hardcoding "3-21G"/"6-31G" regardless of
+  # the actual NGAUSS value was a real, confirmed bug - found via a
+  # real aa001g.inp file that genuinely used GBASIS=N21 NGAUSS=6
+  # (6-21G), not the assumed 3-21G. Fixed to use the real, parsed
+  # NGAUSS value, the same way the STO case already correctly does.
   base <- switch(b$gbasis,
                  "STO"  = if (!is.na(b$ngauss)) paste0("STO-", b$ngauss, "G") else "STO",
-                 "N21"  = "3-21G",
-                 "N31"  = "6-31G",
-                 "N311" = "6-311G",
+                 "N21"  = if (!is.na(b$ngauss)) paste0(b$ngauss, "-21G") else "N21 (NGAUSS not found)",
+                 "N31"  = if (!is.na(b$ngauss)) paste0(b$ngauss, "-31G") else "N31 (NGAUSS not found)",
+                 "N311" = if (!is.na(b$ngauss)) paste0(b$ngauss, "-311G") else "N311 (NGAUSS not found)",
                  "DZV"  = "DZV",
                  "TZV"  = "TZV",
                  "CC"   = "cc-pVXZ",
