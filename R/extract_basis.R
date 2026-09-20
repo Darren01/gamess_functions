@@ -33,7 +33,14 @@ parse_basis_keywords <- function(block_lines) {
   text <- toupper(paste(block_lines, collapse = " "))
   
   get_val <- function(key) {
-    pattern <- paste0(key, "\\s*=\\s*([A-Z0-9\\.]+)")
+    # [A-Z0-9\\.\\-] - includes a hyphen, needed for basis names like
+    # GBASIS=PCSEG-2 (Jensen's segmented family). Confirmed as a real,
+    # pre-existing gap: without it, the value capture stops at the
+    # hyphen, silently truncating "PCSEG-2" down to just "PCSEG" -
+    # found via examples/aa's own real PCseg-2 single points, once
+    # hasBasisSet was actually queried as real graph data for the
+    # first time.
+    pattern <- paste0(key, "\\s*=\\s*([A-Z0-9\\.\\-]+)")
     m <- regexec(pattern, text, perl = TRUE)
     res <- regmatches(text, m)[[1]]
     
