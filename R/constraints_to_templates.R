@@ -85,7 +85,13 @@ constraints_to_templates <- function(constraints_df, experiment_id) {
 
     id_parts <- c(r$atom1, r$atom2, r$atom3, r$atom4)
     id_parts <- id_parts[!is.na(id_parts)]
-    label <- paste0(label_word[[r$type]], " constraint ", stem)
+    # Include which atoms this constraint actually spans in its own
+    # label (e.g. "Distance constraint caa001a (atoms 4-13)") - not
+    # just which experiment and which kind of constraint. id_parts was
+    # already being computed here, just never actually used for
+    # anything - a real, confirmed gap.
+    label <- paste0(label_word[[r$type]], " constraint ", stem,
+                     " (atoms ", paste(id_parts, collapse = "-"), ")")
 
     constraint_row <- data.frame(
       ID = cid,
