@@ -32,6 +32,8 @@ Raw extraction from `.log` files - what a calculation actually produced.
 - [extract_constraints()](./R/extract_constraints.R) – Extract distance/angle/dihedral constraints from a geometry optimisation
 - [extract_geometry_trajectory()](./R/extract_geometry_trajectory.R) – Extract the full optimisation trajectory (every geometry + energy + step index), identifying the converged final structure
 - [geometry_to_atoms()](./R/geometry_to_atoms.R) – Extract per-atom Cartesian coordinates as individually-addressable atoms
+- [species_inchi_to_templates()](./R/species_inchi_to_templates.R) – Give each species in a minimum-energy geometry (e.g. aldehyde + two waters) its own `gc:Molecule` with `gc:hasInChIString` / `gc:hasInChIKey`, generated from the geometry or checked against identifiers you supply. Refuses rather than guesses (undefined stereochemistry, wrong isomer, wrong key); needs Python + RDKit
+- [build_species_table()](./R/build_species_table.R) – Run it over every converged optimisation log in a folder; writes `molecule_species_instances.tsv` and a `species_report.tsv` saying what was refused and why
 
 ### Input parsing
 Shared, `.inp`-or-`.log`-agnostic parsing of what a calculation actually asked for.
