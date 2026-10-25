@@ -37,7 +37,8 @@
 #'   are generated from the geometry.
 #' @param helper path to inchi_species.py.
 #' @param python the Python executable that has RDKit.
-#' @return list(molecule_rows, report, ok). molecule_rows follows
+#' @return list(molecule_rows, report, ok). molecule_rows (experiment link row, system row,
+#'   one row per species) follows
 #'   molecule_template.tsv (with the two InChI columns); report has one row per
 #'   species with status and the reason for any refusal.
 #' @export
@@ -127,5 +128,13 @@ species_inchi_to_templates <- function(geometry, experiment_id, charge = 0, mult
     hasMolecule = paste(sp_ids, collapse = "|"), hasAtom = "", hasInChIString = "", hasInChIKey = "",
     stringsAsFactors = FALSE
   )
-  list(molecule_rows = rbind(system_row, species_rows), report = report, ok = nrow(refused) == 0)
+  # experiment -> system, so a query can go experiment -> system -> species.
+  # Same "reopening" row geometry_to_atoms() uses (gc:MolecularComputation is the
+  # superclass of every job type, so this never contradicts the experiment's own type).
+  exp_row <- data.frame(
+    ID = experiment_id, Label = "", Type = "gc:MolecularComputation",
+    hasMolecule = paste0("ex:molecule_", stem), hasAtom = "", hasInChIString = "", hasInChIKey = "",
+    stringsAsFactors = FALSE
+  )
+  list(molecule_rows = rbind(exp_row, system_row, species_rows), report = report, ok = nrow(refused) == 0)
 }

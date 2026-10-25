@@ -6,11 +6,13 @@
 #' Transition-state, IRC, hessian-only and single-point-only logs are skipped.
 #'
 #' @param log_dir folder of .log files (e.g. "examples/caa/outputs").
-#' @param out_dir folder to write molecule_species_instances.tsv and species_report.tsv.
+#' @param out_dir folder to write the instances file and species_report.tsv.
+#' @param instances_name file name for the molecule rows. Use "molecule_template_instances.tsv"
+#'   for build_ontology_graph() to pick it up (process_gamess_directory(species = TRUE) does this).
 #' @param ... passed to species_inchi_to_templates() (helper, python).
 #' @return the report data.frame, invisibly.
 #' @export
-build_species_table <- function(log_dir, out_dir, ...) {
+build_species_table <- function(log_dir, out_dir, instances_name = "molecule_species_instances.tsv", ...) {
   logs <- sort(list.files(log_dir, pattern = "\\.log$", full.names = TRUE))
   rows <- list(); reps <- list()
   for (f in logs) {
@@ -41,7 +43,7 @@ build_species_table <- function(log_dir, out_dir, ...) {
             "AT gc:hasInChIString^^xsd:string", "AT gc:hasInChIKey^^xsd:string")
   all_rows <- do.call(rbind, rows)
   if (is.null(all_rows)) all_rows <- data.frame(matrix(character(), 0, 7, dimnames = list(NULL, header)))
-  out <- file.path(out_dir, "molecule_species_instances.tsv")
+  out <- file.path(out_dir, instances_name)
   writeLines(c(paste(header, collapse = "\t"), paste(tmpl, collapse = "\t")), out)
   utils::write.table(all_rows, out, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE, append = TRUE)
   rep <- do.call(rbind, reps)
