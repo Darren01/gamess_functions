@@ -38,11 +38,13 @@ build_species_table <- function(log_dir, out_dir, instances_name = "molecule_spe
     reps[[stem]] <- cbind(experiment = stem, res$report)
   }
   dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-  header <- c("ID", "Label", "Type", "hasMolecule", "hasAtom", "hasInChIString", "hasInChIKey")
+  header <- c("ID", "Label", "Type", "hasMolecule", "hasAtom", "hasInChIString", "hasInChIKey",
+              "hasElementSymbol", "hasIndex")
   tmpl <- c("ID", "LABEL", "TYPE", "I gc:hasMolecule SPLIT=|", "I gc:hasAtom SPLIT=|",
-            "AT gc:hasInChIString^^xsd:string", "AT gc:hasInChIKey^^xsd:string")
+            "AT gc:hasInChIString^^xsd:string", "AT gc:hasInChIKey^^xsd:string",
+            "AT gc:hasElementSymbol^^xsd:string", "AT gc:hasIndex^^xsd:nonNegativeInteger")
   all_rows <- do.call(rbind, rows)
-  if (is.null(all_rows)) all_rows <- data.frame(matrix(character(), 0, 7, dimnames = list(NULL, header)))
+  if (is.null(all_rows)) all_rows <- data.frame(matrix(character(), 0, 9, dimnames = list(NULL, header)))
   out <- file.path(out_dir, instances_name)
   writeLines(c(paste(header, collapse = "\t"), paste(tmpl, collapse = "\t")), out)
   utils::write.table(all_rows, out, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE, append = TRUE)

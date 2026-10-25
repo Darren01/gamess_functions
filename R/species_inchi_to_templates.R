@@ -38,7 +38,7 @@
 #' @param helper path to inchi_species.py.
 #' @param python the Python executable that has RDKit.
 #' @return list(molecule_rows, report, ok). molecule_rows (experiment link row, system row,
-#'   one row per species) follows
+#'   one row per species, one "light" atom row per atom of an accepted species) follows
 #'   molecule_template.tsv (with the two InChI columns); report has one row per
 #'   species with status and the reason for any refusal.
 #' @export
@@ -108,6 +108,7 @@ species_inchi_to_templates <- function(geometry, experiment_id, charge = 0, mult
   good <- report[report$status == "ok", , drop = FALSE]
   empty <- data.frame(ID = character(), Label = character(), Type = character(), hasMolecule = character(),
                       hasAtom = character(), hasInChIString = character(), hasInChIKey = character(),
+                      hasElementSymbol = character(), hasIndex = character(),
                       stringsAsFactors = FALSE)
   if (nrow(good) == 0) return(list(molecule_rows = empty, report = report, ok = FALSE))
 
@@ -121,20 +122,40 @@ species_inchi_to_templates <- function(geometry, experiment_id, charge = 0, mult
     hasAtom = atoms_of,
     hasInChIString = good$inchi,
     hasInChIKey = good$inchikey,
+    hasElementSymbol = "", hasIndex = "",
     stringsAsFactors = FALSE
   )
   system_row <- data.frame(
     ID = paste0("ex:molecule_", stem), Label = paste("Molecule for", stem), Type = "gc:Molecule",
     hasMolecule = paste(sp_ids, collapse = "|"), hasAtom = "", hasInChIString = "", hasInChIKey = "",
+    hasElementSymbol = "", hasIndex = "",
     stringsAsFactors = FALSE
   )
   # experiment -> system, so a query can go experiment -> system -> species.
-  # Same "reopening" row geometry_to_atoms() uses (gc:MolecularComputation is the
-  # superclass of every job type, so this never contradicts the experiment's own type).
+  # A "reopening" row for the experiment. Its Type is owl:NamedIndividual (a tag every
+  # individual already carries) on purpose: a blank Type makes ROBOT treat the ID as a
+  # CLASS, and gc:MolecularComputation would silently give the experiment a class that
+  # other scripts only write when they attach a result, which would mislead any query
+  # that uses that class to find experiments with results.
   exp_row <- data.frame(
-    ID = experiment_id, Label = "", Type = "gc:MolecularComputation",
+    ID = experiment_id, Label = "", Type = "owl:NamedIndividual",
     hasMolecule = paste0("ex:molecule_", stem), hasAtom = "", hasInChIString = "", hasInChIKey = "",
+    hasElementSymbol = "", hasIndex = "",
     stringsAsFactors = FALSE
   )
-  list(molecule_rows = rbind(exp_row, system_row, species_rows), report = report, ok = nrow(refused) == 0)
+  # "Light" atoms: a real gc:Atom for every atom of an accepted species, carrying only its
+  # element and its number (position in the $DATA block). No coordinates - those stay in
+  # the .log/.dat files each experiment links to. Label matches geometry_to_atoms() so the
+  # two never disagree if coordinates are added later.
+  idx <- sort(unique(as.integer(unlist(strsplit(good$atoms, ",")))))
+  sym <- as.character(geometry$atom)[idx]
+  atom_rows <- data.frame(
+    ID = paste0("ex:atom_", stem, "_", idx),
+    Label = paste0("Atom ", idx, " (", sym, ") for ", stem),
+    Type = "gc:Atom", hasMolecule = "", hasAtom = "", hasInChIString = "", hasInChIKey = "",
+    hasElementSymbol = paste0(toupper(substr(sym, 1, 1)), tolower(substring(sym, 2))),
+    hasIndex = as.character(idx),
+    stringsAsFactors = FALSE
+  )
+  list(molecule_rows = rbind(exp_row, system_row, species_rows, atom_rows), report = report, ok = nrow(refused) == 0)
 }
