@@ -6,9 +6,9 @@
 #'
 #'   experiment --gc:hasResult--> SystemEnergies
 #'     --gc:hasZeroPointEnergy--> FloatValue --gc:hasFloatValue--> literal ; --gc:hasUnit--> gc:hartree
-#'     --gc:hasEnthalpy--> FloatValue --gc:hasFloatValue--> literal ; --gc:hasUnit--> gc:kiloJoules
+#'     --gc:hasEnthalpy--> FloatValue --gc:hasFloatValue--> literal ; --gc:hasUnit--> gc:kiloJoulePerMole
 #'     --gc:hasEntropy--> FloatValue --gc:hasFloatValue--> literal ; --gc:hasUnit--> gc:joulePerMoleKelvin
-#'     --gc:hasGibbsFreeEnergy--> FloatValue --gc:hasFloatValue--> literal ; --gc:hasUnit--> gc:kiloJoules
+#'     --gc:hasGibbsFreeEnergy--> FloatValue --gc:hasFloatValue--> literal ; --gc:hasUnit--> gc:kiloJoulePerMole
 #'
 #' Three levels, not four - unlike the frequency/intensity chain,
 #' SystemEnergies holds multiple energy properties directly (no
@@ -57,7 +57,9 @@ thermochemistry_to_templates <- function(thermo_df, experiment_id, label_suffix 
   # extract_ir_spectrum() know about the ontology at all
   unit_map <- c(
     "Hartree"    = "gc:hartree",
-    "kJ/mol"     = "gc:kiloJoules",
+    # gc:kiloJoules was used here until gc v0.8.9 (release 2026-10-11); it dropped
+    # the "per mole" and is now deprecated. Graphs built earlier still carry it.
+    "kJ/mol"     = "gc:kiloJoulePerMole",
     "J/(mol K)"  = "gc:joulePerMoleKelvin"
   )
 
