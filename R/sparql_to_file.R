@@ -68,13 +68,15 @@ sparql_query <- function(graph_file,
 
   writeLines(query, query_file)
 
+  # Quote file paths so folders with spaces (e.g. "OneDrive - CPI") survive the shell.
+  q <- function(x) shQuote(x, type = if (.Platform$OS.type == "windows") "cmd" else "sh")
   cmd_parts <- strsplit(robot_cmd, "\\s+")[[1]]
   cmd  <- cmd_parts[1]
   args <- c(
     cmd_parts[-1],
     "query",
-    "--input", path.expand(graph_file),
-    "--query", query_file, output_file
+    "--input", q(path.expand(graph_file)),
+    "--query", q(query_file), q(output_file)
   )
 
   result <- suppressWarnings(

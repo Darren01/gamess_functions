@@ -80,7 +80,9 @@ validate_graph_shacl <- function(graph_file, shapes_file, shacl_cmd = "shacl", j
     stop("Shapes file not found: ", shapes_file)
   }
 
-  args <- c("validate", "--data", graph_file, "--shapes", shapes_file)
+  # Quote file paths so folders with spaces (e.g. "OneDrive - CPI") survive the shell.
+  q <- function(x) shQuote(x, type = if (.Platform$OS.type == "windows") "cmd" else "sh")
+  args <- c("validate", "--data", q(graph_file), "--shapes", q(shapes_file))
 
   old_java_home <- Sys.getenv("JAVA_HOME")
   old_path <- Sys.getenv("PATH")

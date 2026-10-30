@@ -78,14 +78,18 @@ build_reasoned_graph <- function(asserted_graph_file, extensions_file, output_fi
          "overwrite the asserted graph with the reasoned one.")
   }
 
+  # Quote every file path: a path containing a space (e.g. "OneDrive - CPI")
+  # would otherwise be split into separate arguments by the shell.
+  q <- function(x) shQuote(x, type = if (.Platform$OS.type == "windows") "cmd" else "sh")
+
   args <- c(
     "merge",
-    "--input", asserted_graph_file,
-    "--input", extensions_file,
+    "--input", q(asserted_graph_file),
+    "--input", q(extensions_file),
     "reason",
     "--reasoner", reasoner,
     "--axiom-generators", axiom_generators,
-    "--output", output_file
+    "--output", q(output_file)
   )
 
   # robot_cmd can be a bare command ("robot") or a multi-word one
