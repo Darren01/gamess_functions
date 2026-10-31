@@ -8,8 +8,22 @@
 # Functions
 #   parse_gamess_frequencies()  log file -> data frame of modes
 #   build_ir_spectrum()         modes + scale factor -> broadened spectrum
-#   plot_ir_spectrum()          base-graphics plot of a spectrum
-#   gamess_ir_spectrum()        convenience wrapper: log file -> spectrum
+#                               (Lorentzian, Gaussian or pseudo-Voigt)
+#   pick_ir_peaks()             peaks above a relative-intensity threshold
+#   combine_ir_spectra()        molar-weighted superposition of several spectra
+#   plot_ir_spectrum()          base-graphics plot (transmittance or absorbance)
+#   gamess_ir_spectrum()        convenience wrapper: log file -> spectrum + plot
+#
+# Usage
+#   source("gamess_ir_spectrum.R")
+#   # One log: plots and returns the spectrum (sf = your looked-up scale factor)
+#   spec <- gamess_ir_spectrum("aa001h.log", scale_factor = sf)
+#
+#   # Several components on a molar basis (same grid; build with plot = FALSE)
+#   g <- gamess_ir_spectrum("aa001g.log", sf, plot = FALSE)
+#   h <- gamess_ir_spectrum("aa001h.log", sf, plot = FALSE)
+#   mix <- combine_ir_spectra(list(g = g, h = h), c(g = 0.455, h = 0.545))
+#   plot_ir_spectrum(mix, peaks = pick_ir_peaks(mix))
 #
 # Design notes
 #   * The frequency scale factor has NO default. It depends on the functional
