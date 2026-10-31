@@ -346,10 +346,25 @@ plot_ir_spectrum <- function(spectrum, display = c("transmittance", "absorbance"
 
 #' Log file -> broadened IR spectrum in one call
 #'
+#' Returns the spectrum (invisibly when plotting) and, by default, draws it.
+#'
 #' @inheritParams parse_gamess_frequencies
 #' @inheritParams build_ir_spectrum
+#' @param plot Draw the spectrum with plot_ir_spectrum() (default TRUE).
+#' @param peak_threshold Label peaks at or above this fraction (0-1) of the
+#'   tallest peak, as in pick_ir_peaks(). NULL draws no peak labels.
+#' @param display "transmittance" or "absorbance"; passed to plot_ir_spectrum().
 #' @param ... Further arguments passed to build_ir_spectrum().
-gamess_ir_spectrum <- function(log_file, scale_factor, block = "last", ...) {
+#' @return The spectrum data frame from build_ir_spectrum().
+gamess_ir_spectrum <- function(log_file, scale_factor, block = "last",
+                               plot = TRUE, peak_threshold = 0.5,
+                               display = "transmittance", ...) {
   modes <- parse_gamess_frequencies(log_file, block = block)
-  build_ir_spectrum(modes, scale_factor = scale_factor, ...)
+  spec <- build_ir_spectrum(modes, scale_factor = scale_factor, ...)
+  if (plot) {
+    pk <- if (is.null(peak_threshold)) NULL else pick_ir_peaks(spec, peak_threshold)
+    plot_ir_spectrum(spec, display = display, peaks = pk, main = basename(log_file))
+    return(invisible(spec))
+  }
+  spec
 }
